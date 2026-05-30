@@ -11,14 +11,30 @@ export type SocketAck<TData = null> =
       error: ActionError;
     };
 
-/*
-  Bloco 0:
-  Tipos mínimos para inicializar o servidor Socket.io.
-  Payloads definitivos de votação serão criados após os contracts de equipes,
-  grupos, previsões, consenso e dados oficiais.
-*/
 export interface ClientToServerEvents {
-  [SOCKET_EVENTS.TEAM_VOTE_SUBMITTED]: (
+  [SOCKET_EVENTS.JOIN_TEAM]: (payload: unknown, ack?: (response: SocketAck) => void) => void;
+
+  [SOCKET_EVENTS.OPEN_VOTING_SESSION]: (
+    payload: unknown,
+    ack?: (response: SocketAck) => void
+  ) => void;
+
+  [SOCKET_EVENTS.CLOSE_VOTING_SESSION]: (
+    payload: unknown,
+    ack?: (response: SocketAck) => void
+  ) => void;
+
+  [SOCKET_EVENTS.SUBMIT_GROUP_VOTE]: (
+    payload: unknown,
+    ack?: (response: SocketAck) => void
+  ) => void;
+
+  [SOCKET_EVENTS.SUBMIT_KNOCKOUT_VOTE]: (
+    payload: unknown,
+    ack?: (response: SocketAck) => void
+  ) => void;
+
+  [SOCKET_EVENTS.SUBMIT_TIEBREAKER]: (
     payload: unknown,
     ack?: (response: SocketAck) => void
   ) => void;
@@ -26,10 +42,12 @@ export interface ClientToServerEvents {
 
 export interface ServerToClientEvents {
   [SOCKET_EVENTS.SOCKET_ERROR]: (payload: ActionError) => void;
-  [SOCKET_EVENTS.TEAM_VOTES_UPDATED]: (payload: unknown) => void;
-  [SOCKET_EVENTS.TEAM_VOTING_OPENED]: (payload: unknown) => void;
-  [SOCKET_EVENTS.TEAM_VOTING_CLOSED]: (payload: unknown) => void;
-  [SOCKET_EVENTS.TEAM_TIEBREAK_APPLIED]: (payload: unknown) => void;
+  [SOCKET_EVENTS.VOTING_STATUS_UPDATED]: (payload: unknown) => void;
+  [SOCKET_EVENTS.VOTING_CLOSED]: (payload: unknown) => void;
+  [SOCKET_EVENTS.TIEBREAKER_REQUIRED]: (payload: unknown) => void;
+  [SOCKET_EVENTS.CONSENSUS_DEFINED]: (payload: unknown) => void;
+  [SOCKET_EVENTS.GROUP_VOTE_UPDATED]: (payload: unknown) => void;
+  [SOCKET_EVENTS.KNOCKOUT_VOTE_UPDATED]: (payload: unknown) => void;
 }
 
 export interface InterServerEvents {

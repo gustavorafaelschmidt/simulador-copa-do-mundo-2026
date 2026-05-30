@@ -43,11 +43,11 @@ io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
   });
 
   /*
-    Importante para blocos futuros:
-    - autenticação da sessão deve ser validada antes de entrar em rooms;
-    - regra de consenso NÃO deve ser implementada aqui;
-    - handlers devem chamar services centralizados em services/consensus e services/team;
-    - eventos devem usar exclusivamente SOCKET_EVENTS.
+    Blocos futuros:
+    - validar sessão antes de entrar em rooms;
+    - importar services de team/consensus;
+    - nunca duplicar regra de consenso aqui;
+    - usar apenas eventos declarados em SOCKET_EVENTS.
   */
 
   socket.on(SOCKET_EVENTS.DISCONNECT, (reason) => {

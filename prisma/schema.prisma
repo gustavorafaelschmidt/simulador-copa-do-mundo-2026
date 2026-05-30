@@ -8,16 +8,942 @@ datasource db {
 }
 
 /*
-  Convenções obrigatórias para os próximos blocos:
-
+  Convenções obrigatórias:
   - Models Prisma em PascalCase.
-  - Tabelas reais no PostgreSQL em snake_case e plural, usando @@map.
-  - Colunas reais no PostgreSQL em snake_case, usando @map quando necessário.
+  - Tabelas PostgreSQL em snake_case e plural, usando @@map.
+  - Colunas PostgreSQL em snake_case, usando @map.
   - Campos TypeScript/Prisma em camelCase.
-  - Regras sensíveis protegidas também no banco com unique constraints,
-    foreign keys, indexes e transações quando aplicável.
-
-  Importante:
-  Ainda não há models neste Bloco 0. O schema será expandido nos blocos de
-  autenticação, equipes, previsões, votos, rankings e dados oficiais versionados.
+  - Regras críticas protegidas no banco com unique constraints, índices e FKs.
+  - Regras sensíveis também devem ser validadas no backend.
+  - Não usar Sequelize.
 */
+
+enum AuthProvider {
+  CREDENTIALS
+  GOOGLE
+}
+
+enum GlobalRole {
+  USER
+  ADMIN_GLOBAL
+}
+
+enum TeamMemberRole {
+  CAPTAIN
+  ADMIN
+  MEMBER
+}
+
+enum TeamMemberApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REMOVED
+}
+
+enum VotingSessionType {
+  GROUP_STAGE
+  KNOCKOUT
+}
+
+enum VotingSessionStatus {
+  DRAFT
+  OPEN
+  TIEBREAKER_REQUIRED
+  CLOSED
+  CANCELLED
+}
+
+enum KnockoutPhase {
+  ROUND_OF_32
+  ROUND_OF_16
+  QUARTER_FINAL
+  SEMI_FINAL
+  THIRD_PLACE
+  FINAL
+}
+
+enum ConsensusDecisionType {
+  MAJORITY
+  CAPTAIN_TIEBREAK
+  ADMIN_OVERRIDE
+}
+
+enum RankingType {
+  INDIVIDUAL
+  TEAM
+}
+
+enum RealResultType {
+  GROUP_STANDING
+  GROUP_MATCH
+  KNOCKOUT_MATCH
+  CHAMPION
+  RUNNER_UP
+  THIRD_PLACE
+}
+
+enum GroupLetter {
+  A
+  B
+  C
+  D
+  E
+  F
+  G
+  H
+  I
+  J
+  K
+  L
+}
+
+enum RankingJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum OfficialDataStatus {
+  PLACEHOLDER
+  PARTIAL
+  OFFICIAL
+  DEPRECATED
+}
+
+enum BadgeTargetType {
+  USER
+  TEAM
+}
+
+enum BadgeRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+model User {
+  id                    String       @id @default(cuid())
+  name                  String?
+  email                 String?      @unique
+  emailVerified         DateTime?    @map("email_verified")
+  image                 String?
+
+  firstName             String?      @map("first_name")
+  lastName              String?      @map("last_name")
+  nickname              String?      @unique
+  birthDate             DateTime?    @map("birth_date")
+  passwordHash          String?      @map("password_hash")
+  globalRole            GlobalRole   @default(USER) @map("global_role")
+  primaryAuthProvider   AuthProvider @default(CREDENTIALS) @map("primary_auth_provider")
+
+  profileCompletedAt    DateTime?    @map("profile_completed_at")
+  onboardingCompletedAt DateTime?    @map("onboarding_completed_at")
+
+  createdAt             DateTime     @default(now()) @map("created_at")
+  updatedAt             DateTime     @updatedAt @map("updated_at")
+
+  accounts              Account[]
+  sessions              Session[]
+
+  ownedTeams            Team[]       @relation("TeamOwner")
+  teamMemberships       TeamMember[] @relation("TeamMemberUser")
+  approvedTeamMembers   TeamMember[] @relation("TeamMemberApprovedBy")
+  createdInvites        TeamInvite[] @relation("TeamInviteCreatedBy")
+
+  openedVotingSessions  VotingSession[] @relation("VotingSessionOpenedBy")
+  closedVotingSessions  VotingSession[] @relation("VotingSessionClosedBy")
+
+  individualGroupPredictions    IndividualGroupPrediction[]
+  individualKnockoutPredictions IndividualKnockoutPrediction[]
+
+  teamGroupVotes        TeamGroupVote[]
+  teamKnockoutVotes     TeamKnockoutVote[]
+
+  decidedGroupConsensuses    TeamGroupConsensus[]    @relation("TeamGroupConsensusDecidedBy")
+  decidedKnockoutConsensuses TeamKnockoutConsensus[] @relation("TeamKnockoutConsensusDecidedBy")
+
+  userBadges            UserBadge[]
+  rankingEntries        RankingEntry[]
+  rankingJobsRequested  RankingRecalculationJob[] @relation("RankingJobRequestedBy")
+
+  auditLogs             AuditLog[] @relation("AuditActor")
+  realResultsCreated    RealTournamentResult[] @relation("RealResultCreatedBy")
+  realResultsUpdated    RealTournamentResult[] @relation("RealResultUpdatedBy")
+
+  @@index([globalRole])
+  @@index([profileCompletedAt])
+  @@index([onboardingCompletedAt])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  /*
+    Campos úteis para validação direta no servidor Socket.io.
+    O handler futuro poderá localizar a sessão por sessionToken e validar:
+    - userId;
+    - expires;
+    - revokedAt.
+  */
+  revokedAt    DateTime? @map("revoked_at")
+  ipAddress    String?   @map("ip_address")
+  userAgent    String?   @map("user_agent")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expires])
+  @@index([sessionToken, expires])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@id([identifier, token])
+  @@index([expires])
+  @@map("verification_tokens")
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  inviteCode  String   @unique @map("invite_code")
+  ownerId     String   @map("owner_id")
+  isActive    Boolean  @default(true) @map("is_active")
+  maxMembers  Int      @default(20) @map("max_members")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  owner       User @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+
+  members         TeamMember[]
+  invites         TeamInvite[]
+  votingSessions  VotingSession[]
+
+  groupVotes      TeamGroupVote[]
+  knockoutVotes   TeamKnockoutVote[]
+
+  groupConsensuses    TeamGroupConsensus[]
+  knockoutConsensuses TeamKnockoutConsensus[]
+
+  teamBadges      TeamBadge[]
+  rankingEntries  RankingEntry[]
+  globalStats     GlobalStatSnapshot[]
+
+  @@index([ownerId])
+  @@index([inviteCode])
+  @@index([slug])
+  @@index([createdAt])
+  @@map("teams")
+}
+
+model TeamMember {
+  id             String                   @id @default(cuid())
+  teamId         String                   @map("team_id")
+  userId         String                   @map("user_id")
+  role           TeamMemberRole           @default(MEMBER)
+  approvalStatus TeamMemberApprovalStatus @default(PENDING) @map("approval_status")
+
+  approvedByUserId String?   @map("approved_by_user_id")
+  approvedAt       DateTime? @map("approved_at")
+  joinedAt         DateTime? @map("joined_at")
+  removedAt        DateTime? @map("removed_at")
+
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  team             Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user             User @relation("TeamMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  approvedBy       User? @relation("TeamMemberApprovedBy", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+
+  /*
+    Integridade crítica:
+    um usuário só pode ter uma associação por equipe.
+    Aprovação/rejeição/remoção atualizam a mesma linha.
+  */
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@index([teamId, approvalStatus])
+  @@index([teamId, role])
+  @@map("team_members")
+}
+
+model TeamInvite {
+  id              String   @id @default(cuid())
+  teamId          String   @map("team_id")
+  code            String   @unique
+  createdByUserId String   @map("created_by_user_id")
+  expiresAt       DateTime? @map("expires_at")
+  maxUses         Int?      @map("max_uses")
+  usedCount       Int      @default(0) @map("used_count")
+  revokedAt       DateTime? @map("revoked_at")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  team            Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy       User @relation("TeamInviteCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([teamId])
+  @@index([code])
+  @@index([expiresAt])
+  @@map("team_invites")
+}
+
+model OfficialDataVersion {
+  id                String             @id @default(cuid())
+  code              String             @unique
+  description       String             @db.Text
+  status            OfficialDataStatus @default(PLACEHOLDER)
+  sourceDocumentRef String?            @map("source_document_ref") @db.Text
+  importedAt        DateTime?          @map("imported_at")
+  isActive          Boolean            @default(false) @map("is_active")
+
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  groups            TournamentGroup[]
+  nationalTeams     NationalTeam[]
+  officialMatches   OfficialMatch[]
+  bracketSlots      OfficialBracketSlot[]
+  thirdPlaceRules   OfficialThirdPlaceMatrixRule[]
+  realResults       RealTournamentResult[]
+
+  @@index([status])
+  @@index([isActive])
+  @@map("official_data_versions")
+}
+
+model TournamentGroup {
+  id                    String             @id @default(cuid())
+  letter                GroupLetter         @unique
+  name                  String
+  officialDataStatus    OfficialDataStatus @default(PLACEHOLDER) @map("official_data_status")
+  officialDataVersionId String?            @map("official_data_version_id")
+  sourceDocumentRef     String?            @map("source_document_ref") @db.Text
+
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+
+  officialDataVersion   OfficialDataVersion? @relation(fields: [officialDataVersionId], references: [id], onDelete: SetNull)
+  nationalTeams         NationalTeam[]
+  officialMatches       OfficialMatch[]
+
+  @@index([officialDataStatus])
+  @@index([officialDataVersionId])
+  @@map("tournament_groups")
+}
+
+model NationalTeam {
+  id                    String             @id @default(cuid())
+  fifaCode              String             @unique @map("fifa_code")
+  name                  String
+  shortName             String             @map("short_name")
+  flagUrl               String?            @map("flag_url")
+  groupId               String?            @map("group_id")
+  groupPosition         Int?               @map("group_position")
+  officialDataStatus    OfficialDataStatus @default(PLACEHOLDER) @map("official_data_status")
+  officialDataVersionId String?            @map("official_data_version_id")
+  sourceDocumentRef     String?            @map("source_document_ref") @db.Text
+
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+
+  group                 TournamentGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  officialDataVersion   OfficialDataVersion? @relation(fields: [officialDataVersionId], references: [id], onDelete: SetNull)
+
+  homeMatches           OfficialMatch[] @relation("OfficialMatchHomeTeam")
+  awayMatches           OfficialMatch[] @relation("OfficialMatchAwayTeam")
+
+  individualGroupFirstPredictions  IndividualGroupPrediction[] @relation("IndividualGroupFirstPlace")
+  individualGroupSecondPredictions IndividualGroupPrediction[] @relation("IndividualGroupSecondPlace")
+  individualGroupThirdPredictions  IndividualGroupPrediction[] @relation("IndividualGroupThirdPlace")
+  individualGroupFourthPredictions IndividualGroupPrediction[] @relation("IndividualGroupFourthPlace")
+
+  individualKnockoutWinnerPredictions IndividualKnockoutPrediction[] @relation("IndividualKnockoutWinner")
+
+  teamGroupVoteFirstPlaces  TeamGroupVote[] @relation("TeamGroupVoteFirstPlace")
+  teamGroupVoteSecondPlaces TeamGroupVote[] @relation("TeamGroupVoteSecondPlace")
+  teamGroupVoteThirdPlaces  TeamGroupVote[] @relation("TeamGroupVoteThirdPlace")
+  teamGroupVoteFourthPlaces TeamGroupVote[] @relation("TeamGroupVoteFourthPlace")
+
+  teamKnockoutVoteWinners TeamKnockoutVote[] @relation("TeamKnockoutVoteWinner")
+
+  teamGroupConsensusFirstPlaces  TeamGroupConsensus[] @relation("TeamGroupConsensusFirstPlace")
+  teamGroupConsensusSecondPlaces TeamGroupConsensus[] @relation("TeamGroupConsensusSecondPlace")
+  teamGroupConsensusThirdPlaces  TeamGroupConsensus[] @relation("TeamGroupConsensusThirdPlace")
+  teamGroupConsensusFourthPlaces TeamGroupConsensus[] @relation("TeamGroupConsensusFourthPlace")
+
+  teamKnockoutConsensusWinners TeamKnockoutConsensus[] @relation("TeamKnockoutConsensusWinner")
+
+  @@unique([groupId, groupPosition])
+  @@index([groupId])
+  @@index([officialDataStatus])
+  @@index([officialDataVersionId])
+  @@index([name])
+  @@map("national_teams")
+}
+
+model OfficialMatch {
+  id                    String             @id @default(cuid())
+  matchNumber           Int?               @unique @map("match_number")
+  matchCode             String             @unique @map("match_code")
+  groupId               String?            @map("group_id")
+  knockoutPhase         KnockoutPhase?     @map("knockout_phase")
+  bracketSlotId         String?            @map("bracket_slot_id")
+
+  homeTeamId            String?            @map("home_team_id")
+  awayTeamId            String?            @map("away_team_id")
+  homeSlotCode          String?            @map("home_slot_code")
+  awaySlotCode          String?            @map("away_slot_code")
+
+  startsAt              DateTime?          @map("starts_at")
+  stadium               String?
+  city                  String?
+
+  officialDataStatus    OfficialDataStatus @default(PLACEHOLDER) @map("official_data_status")
+  officialDataVersionId String?            @map("official_data_version_id")
+  sourceDocumentRef     String?            @map("source_document_ref") @db.Text
+
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+
+  group                 TournamentGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  bracketSlot           OfficialBracketSlot? @relation(fields: [bracketSlotId], references: [id], onDelete: SetNull)
+  homeTeam              NationalTeam? @relation("OfficialMatchHomeTeam", fields: [homeTeamId], references: [id], onDelete: SetNull)
+  awayTeam              NationalTeam? @relation("OfficialMatchAwayTeam", fields: [awayTeamId], references: [id], onDelete: SetNull)
+  officialDataVersion   OfficialDataVersion? @relation(fields: [officialDataVersionId], references: [id], onDelete: SetNull)
+
+  realResults           RealTournamentResult[]
+
+  @@index([groupId])
+  @@index([knockoutPhase])
+  @@index([bracketSlotId])
+  @@index([startsAt])
+  @@index([officialDataStatus])
+  @@index([officialDataVersionId])
+  @@map("official_matches")
+}
+
+model OfficialBracketSlot {
+  id                    String             @id @default(cuid())
+  slotCode              String             @unique @map("slot_code")
+  phase                 KnockoutPhase
+  sortOrder             Int                @map("sort_order")
+
+  sourceSlotCodeA       String?            @map("source_slot_code_a")
+  sourceSlotCodeB       String?            @map("source_slot_code_b")
+  winnerGoesToSlotCode  String?            @map("winner_goes_to_slot_code")
+
+  officialDataStatus    OfficialDataStatus @default(PLACEHOLDER) @map("official_data_status")
+  officialDataVersionId String?            @map("official_data_version_id")
+  sourceDocumentRef     String?            @map("source_document_ref") @db.Text
+
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+
+  officialDataVersion   OfficialDataVersion? @relation(fields: [officialDataVersionId], references: [id], onDelete: SetNull)
+
+  officialMatches       OfficialMatch[]
+  individualPredictions IndividualKnockoutPrediction[]
+  teamKnockoutVotes     TeamKnockoutVote[]
+  teamKnockoutConsensuses TeamKnockoutConsensus[]
+  realResults           RealTournamentResult[]
+
+  @@index([phase, sortOrder])
+  @@index([officialDataStatus])
+  @@index([officialDataVersionId])
+  @@map("official_bracket_slots")
+}
+
+model OfficialThirdPlaceMatrixRule {
+  id                    String             @id @default(cuid())
+  combinationKey         String             @unique @map("combination_key")
+  qualifiedThirdGroups   GroupLetter[]      @map("qualified_third_groups")
+  slotAssignments        Json               @map("slot_assignments")
+
+  officialDataStatus     OfficialDataStatus @default(PLACEHOLDER) @map("official_data_status")
+  officialDataVersionId  String?            @map("official_data_version_id")
+  sourceDocumentRef      String?            @map("source_document_ref") @db.Text
+
+  createdAt              DateTime           @default(now()) @map("created_at")
+  updatedAt              DateTime           @updatedAt @map("updated_at")
+
+  officialDataVersion    OfficialDataVersion? @relation(fields: [officialDataVersionId], references: [id], onDelete: SetNull)
+
+  @@index([officialDataStatus])
+  @@index([officialDataVersionId])
+  @@map("official_third_place_matrix_rules")
+}
+
+model IndividualGroupPrediction {
+  id                String      @id @default(cuid())
+  userId            String      @map("user_id")
+  group             GroupLetter
+
+  firstPlaceTeamId  String      @map("first_place_team_id")
+  secondPlaceTeamId String      @map("second_place_team_id")
+  thirdPlaceTeamId  String      @map("third_place_team_id")
+  fourthPlaceTeamId String      @map("fourth_place_team_id")
+
+  lockedAt          DateTime?   @map("locked_at")
+  submittedAt       DateTime?   @map("submitted_at")
+
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  firstPlaceTeam    NationalTeam @relation("IndividualGroupFirstPlace", fields: [firstPlaceTeamId], references: [id], onDelete: Restrict)
+  secondPlaceTeam   NationalTeam @relation("IndividualGroupSecondPlace", fields: [secondPlaceTeamId], references: [id], onDelete: Restrict)
+  thirdPlaceTeam    NationalTeam @relation("IndividualGroupThirdPlace", fields: [thirdPlaceTeamId], references: [id], onDelete: Restrict)
+  fourthPlaceTeam   NationalTeam @relation("IndividualGroupFourthPlace", fields: [fourthPlaceTeamId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, group])
+  @@index([userId])
+  @@index([group])
+  @@map("individual_group_predictions")
+}
+
+model IndividualKnockoutPrediction {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  bracketSlotId String   @map("bracket_slot_id")
+  winnerTeamId  String   @map("winner_team_id")
+
+  lockedAt      DateTime? @map("locked_at")
+  submittedAt   DateTime? @map("submitted_at")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bracketSlot   OfficialBracketSlot @relation(fields: [bracketSlotId], references: [id], onDelete: Restrict)
+  winnerTeam    NationalTeam @relation("IndividualKnockoutWinner", fields: [winnerTeamId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, bracketSlotId])
+  @@index([userId])
+  @@index([bracketSlotId])
+  @@index([winnerTeamId])
+  @@map("individual_knockout_predictions")
+}
+
+model VotingSession {
+  id                  String              @id @default(cuid())
+  teamId              String              @map("team_id")
+  type                VotingSessionType
+  status              VotingSessionStatus @default(DRAFT)
+
+  group               GroupLetter?
+  bracketSlotId       String?             @map("bracket_slot_id")
+
+  openedByUserId      String?             @map("opened_by_user_id")
+  closedByUserId      String?             @map("closed_by_user_id")
+  openedAt            DateTime?           @map("opened_at")
+  closedAt            DateTime?           @map("closed_at")
+
+  /*
+    Usado futuramente pelo service de consenso para guardar estado mínimo
+    de empate pendente sem duplicar regra dentro do Socket.io.
+  */
+  tiebreakerPayload   Json?               @map("tiebreaker_payload")
+
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+
+  team                Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  openedBy            User? @relation("VotingSessionOpenedBy", fields: [openedByUserId], references: [id], onDelete: SetNull)
+  closedBy            User? @relation("VotingSessionClosedBy", fields: [closedByUserId], references: [id], onDelete: SetNull)
+
+  groupVotes          TeamGroupVote[]
+  knockoutVotes       TeamKnockoutVote[]
+  groupConsensuses    TeamGroupConsensus[]
+  knockoutConsensuses TeamKnockoutConsensus[]
+
+  @@index([teamId, status])
+  @@index([teamId, type])
+  @@index([group])
+  @@index([bracketSlotId])
+  @@index([createdAt])
+  @@map("voting_sessions")
+}
+
+model TeamGroupVote {
+  id                String      @id @default(cuid())
+  votingSessionId   String      @map("voting_session_id")
+  teamId            String      @map("team_id")
+  userId            String      @map("user_id")
+  group             GroupLetter
+
+  firstPlaceTeamId  String      @map("first_place_team_id")
+  secondPlaceTeamId String      @map("second_place_team_id")
+  thirdPlaceTeamId  String      @map("third_place_team_id")
+  fourthPlaceTeamId String      @map("fourth_place_team_id")
+
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  votingSession     VotingSession @relation(fields: [votingSessionId], references: [id], onDelete: Cascade)
+  team              Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  firstPlaceTeam    NationalTeam @relation("TeamGroupVoteFirstPlace", fields: [firstPlaceTeamId], references: [id], onDelete: Restrict)
+  secondPlaceTeam   NationalTeam @relation("TeamGroupVoteSecondPlace", fields: [secondPlaceTeamId], references: [id], onDelete: Restrict)
+  thirdPlaceTeam    NationalTeam @relation("TeamGroupVoteThirdPlace", fields: [thirdPlaceTeamId], references: [id], onDelete: Restrict)
+  fourthPlaceTeam   NationalTeam @relation("TeamGroupVoteFourthPlace", fields: [fourthPlaceTeamId], references: [id], onDelete: Restrict)
+
+  /*
+    Integridade crítica:
+    um voto de grupo por usuário/sessão/equipe/grupo.
+    O service futuro deve usar upsert/transação.
+  */
+  @@unique([userId, votingSessionId, teamId, group])
+  @@index([votingSessionId])
+  @@index([teamId, group])
+  @@index([userId])
+  @@map("team_group_votes")
+}
+
+model TeamKnockoutVote {
+  id              String   @id @default(cuid())
+  votingSessionId String   @map("voting_session_id")
+  teamId          String   @map("team_id")
+  userId          String   @map("user_id")
+  bracketSlotId   String   @map("bracket_slot_id")
+  winnerTeamId    String   @map("winner_team_id")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  votingSession   VotingSession @relation(fields: [votingSessionId], references: [id], onDelete: Cascade)
+  team            Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bracketSlot     OfficialBracketSlot @relation(fields: [bracketSlotId], references: [id], onDelete: Restrict)
+  winnerTeam      NationalTeam @relation("TeamKnockoutVoteWinner", fields: [winnerTeamId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, votingSessionId, teamId, bracketSlotId])
+  @@index([votingSessionId])
+  @@index([teamId, bracketSlotId])
+  @@index([userId])
+  @@map("team_knockout_votes")
+}
+
+model TeamGroupConsensus {
+  id                String      @id @default(cuid())
+  votingSessionId   String      @map("voting_session_id")
+  teamId            String      @map("team_id")
+  group             GroupLetter
+
+  firstPlaceTeamId  String      @map("first_place_team_id")
+  secondPlaceTeamId String      @map("second_place_team_id")
+  thirdPlaceTeamId  String      @map("third_place_team_id")
+  fourthPlaceTeamId String      @map("fourth_place_team_id")
+
+  decisionType      ConsensusDecisionType @map("decision_type")
+  decidedByUserId   String? @map("decided_by_user_id")
+  decidedAt         DateTime @default(now()) @map("decided_at")
+  voteSummary       Json?    @map("vote_summary")
+
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  votingSession     VotingSession @relation(fields: [votingSessionId], references: [id], onDelete: Cascade)
+  team              Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  decidedBy         User? @relation("TeamGroupConsensusDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+
+  firstPlaceTeam    NationalTeam @relation("TeamGroupConsensusFirstPlace", fields: [firstPlaceTeamId], references: [id], onDelete: Restrict)
+  secondPlaceTeam   NationalTeam @relation("TeamGroupConsensusSecondPlace", fields: [secondPlaceTeamId], references: [id], onDelete: Restrict)
+  thirdPlaceTeam    NationalTeam @relation("TeamGroupConsensusThirdPlace", fields: [thirdPlaceTeamId], references: [id], onDelete: Restrict)
+  fourthPlaceTeam   NationalTeam @relation("TeamGroupConsensusFourthPlace", fields: [fourthPlaceTeamId], references: [id], onDelete: Restrict)
+
+  @@unique([teamId, votingSessionId, group])
+  @@index([teamId, group])
+  @@index([decisionType])
+  @@map("team_group_consensuses")
+}
+
+model TeamKnockoutConsensus {
+  id              String   @id @default(cuid())
+  votingSessionId String   @map("voting_session_id")
+  teamId          String   @map("team_id")
+  bracketSlotId   String   @map("bracket_slot_id")
+  winnerTeamId    String   @map("winner_team_id")
+
+  decisionType    ConsensusDecisionType @map("decision_type")
+  decidedByUserId String? @map("decided_by_user_id")
+  decidedAt       DateTime @default(now()) @map("decided_at")
+  voteSummary     Json?    @map("vote_summary")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  votingSession   VotingSession @relation(fields: [votingSessionId], references: [id], onDelete: Cascade)
+  team            Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  bracketSlot     OfficialBracketSlot @relation(fields: [bracketSlotId], references: [id], onDelete: Restrict)
+  winnerTeam      NationalTeam @relation("TeamKnockoutConsensusWinner", fields: [winnerTeamId], references: [id], onDelete: Restrict)
+  decidedBy       User? @relation("TeamKnockoutConsensusDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([teamId, votingSessionId, bracketSlotId])
+  @@index([teamId, bracketSlotId])
+  @@index([decisionType])
+  @@map("team_knockout_consensuses")
+}
+
+model RealTournamentResult {
+  id                    String             @id @default(cuid())
+  resultKey             String             @unique @map("result_key")
+  type                  RealResultType
+
+  group                 GroupLetter?
+  knockoutPhase         KnockoutPhase?     @map("knockout_phase")
+  officialMatchId       String?            @map("official_match_id")
+  bracketSlotId         String?            @map("bracket_slot_id")
+  payload               Json
+
+  sourceDocumentRef     String?            @map("source_document_ref") @db.Text
+  officialDataStatus    OfficialDataStatus @default(OFFICIAL) @map("official_data_status")
+  officialDataVersionId String?            @map("official_data_version_id")
+
+  createdByUserId       String?            @map("created_by_user_id")
+  updatedByUserId       String?            @map("updated_by_user_id")
+
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+
+  officialMatch         OfficialMatch? @relation(fields: [officialMatchId], references: [id], onDelete: SetNull)
+  bracketSlot           OfficialBracketSlot? @relation(fields: [bracketSlotId], references: [id], onDelete: SetNull)
+  officialDataVersion   OfficialDataVersion? @relation(fields: [officialDataVersionId], references: [id], onDelete: SetNull)
+  createdBy             User? @relation("RealResultCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy             User? @relation("RealResultUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  /*
+    resultKey evita inconsistência causada por unique constraints compostas
+    com campos opcionais nulos no PostgreSQL.
+  */
+  @@index([type])
+  @@index([group])
+  @@index([knockoutPhase])
+  @@index([officialMatchId])
+  @@index([bracketSlotId])
+  @@index([officialDataStatus])
+  @@index([officialDataVersionId])
+  @@map("real_tournament_results")
+}
+
+model RankingSnapshot {
+  id            String      @id @default(cuid())
+  type          RankingType
+  calculatedAt  DateTime    @default(now()) @map("calculated_at")
+  sourceJobId   String?     @map("source_job_id")
+  metadata      Json?
+
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  entries       RankingEntry[]
+  sourceJob     RankingRecalculationJob? @relation(fields: [sourceJobId], references: [id], onDelete: SetNull)
+
+  @@index([type, calculatedAt])
+  @@map("ranking_snapshots")
+}
+
+model RankingEntry {
+  id                 String      @id @default(cuid())
+  snapshotId          String      @map("snapshot_id")
+  rankingType         RankingType @map("ranking_type")
+
+  userId              String?     @map("user_id")
+  teamId              String?     @map("team_id")
+
+  participantKey      String      @map("participant_key")
+
+  rank                Int
+  score               Int         @default(0)
+  correctPredictions  Int         @default(0) @map("correct_predictions")
+  totalPredictions    Int         @default(0) @map("total_predictions")
+  metadata            Json?
+
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  snapshot            RankingSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  user                User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team                Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([snapshotId, participantKey])
+  @@index([rankingType, rank])
+  @@index([userId])
+  @@index([teamId])
+  @@index([score])
+  @@map("ranking_entries")
+}
+
+model RankingRecalculationJob {
+  id                String           @id @default(cuid())
+  type              RankingType
+  status            RankingJobStatus @default(PENDING)
+  idempotencyKey    String           @unique @map("idempotency_key")
+
+  requestedByUserId String?          @map("requested_by_user_id")
+  startedAt         DateTime?        @map("started_at")
+  finishedAt        DateTime?        @map("finished_at")
+  errorMessage      String?          @map("error_message") @db.Text
+  metadata          Json?
+
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  requestedBy       User? @relation("RankingJobRequestedBy", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  snapshots         RankingSnapshot[]
+
+  @@index([type, status])
+  @@index([createdAt])
+  @@map("ranking_recalculation_jobs")
+}
+
+model Badge {
+  id          String          @id @default(cuid())
+  code        String          @unique
+  name        String
+  description String          @db.Text
+  targetType  BadgeTargetType @map("target_type")
+  rarity      BadgeRarity     @default(COMMON)
+  iconKey     String?         @map("icon_key")
+  isActive    Boolean         @default(true) @map("is_active")
+
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  userBadges  UserBadge[]
+  teamBadges  TeamBadge[]
+
+  @@index([targetType])
+  @@index([rarity])
+  @@index([isActive])
+  @@map("badges")
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  badgeId   String   @map("badge_id")
+  awardedAt DateTime @default(now()) @map("awarded_at")
+  metadata  Json?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge     Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@index([badgeId])
+  @@map("user_badges")
+}
+
+model TeamBadge {
+  id        String   @id @default(cuid())
+  teamId    String   @map("team_id")
+  badgeId   String   @map("badge_id")
+  awardedAt DateTime @default(now()) @map("awarded_at")
+  metadata  Json?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  team      Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  badge     Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, badgeId])
+  @@index([teamId])
+  @@index([badgeId])
+  @@map("team_badges")
+}
+
+model GlobalStatSnapshot {
+  id           String       @id @default(cuid())
+  statKey      String       @map("stat_key")
+  rankingType  RankingType? @map("ranking_type")
+  teamId       String?      @map("team_id")
+  payload      Json
+  calculatedAt DateTime     @default(now()) @map("calculated_at")
+
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  team         Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([statKey])
+  @@index([rankingType])
+  @@index([teamId])
+  @@index([calculatedAt])
+  @@map("global_stat_snapshots")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?  @map("actor_user_id")
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  metadata    Json?
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  actor       User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
