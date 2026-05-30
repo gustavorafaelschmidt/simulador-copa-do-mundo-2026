@@ -29,6 +29,7 @@ export const APP_ROUTES = {
 
   ADMIN: "/admin",
   ADMIN_RESULTS: "/admin/resultados",
+  ADMIN_OFFICIAL_DATA: "/admin/dados-oficiais",
   ADMIN_STATS: "/admin/estatisticas"
 } as const;
 
