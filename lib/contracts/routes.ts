@@ -25,6 +25,7 @@ export const APP_ROUTES = {
   RANKING_TEAMS: "/ranking/equipes",
 
   SETTINGS: "/configuracoes",
+  SETTINGS_PROFILE: "/configuracoes/perfil",
   PROFILE_SETTINGS: "/configuracoes/perfil",
 
   ADMIN: "/admin",
