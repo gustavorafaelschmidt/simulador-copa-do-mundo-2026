@@ -12,6 +12,9 @@ export const APP_ROUTES = {
   REGISTER: "/cadastro",
   ONBOARDING: "/onboarding",
   DASHBOARD: "/dashboard",
+  PREDICTIONS: "/dashboard/previsoes",
+  PREDICTIONS_GROUPS: "/dashboard/previsoes/grupos",
+  PREDICTIONS_KNOCKOUT: "/dashboard/previsoes/mata-mata",
 
   TEAMS: "/equipes",
   TEAM_DETAILS: (teamId: string) => `/equipes/${teamId}`,
