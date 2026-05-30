@@ -1,0 +1,36 @@
+@config "../tailwind.config.ts";
+@import "tailwindcss";
+
+:root {
+  --color-app-background: #f8fafc;
+  --color-app-foreground: #0f172a;
+  --color-app-surface: #ffffff;
+  --color-app-muted: #64748b;
+  --color-app-border: #e2e8f0;
+  --color-app-primary: #16a34a;
+  --color-app-success: #15803d;
+  --color-app-danger: #dc2626;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background: var(--color-app-background);
+  color: var(--color-app-foreground);
+}
+
+/*
+  Mobile First:
+  - componentes devem nascer otimizados para telas pequenas;
+  - breakpoints maiores só entram como melhoria progressiva;
+  - não usar assets, marcas, logos ou ícones proprietários de terceiros.
+*/

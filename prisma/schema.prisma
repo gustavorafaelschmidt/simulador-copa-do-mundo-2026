@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client"
+  output   = "./generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/*
+  Convenções obrigatórias para os próximos blocos:
+
+  - Models Prisma em PascalCase.
+  - Tabelas reais no PostgreSQL em snake_case e plural, usando @@map.
+  - Colunas reais no PostgreSQL em snake_case, usando @map quando necessário.
+  - Campos TypeScript/Prisma em camelCase.
+  - Regras sensíveis protegidas também no banco com unique constraints,
+    foreign keys, indexes e transações quando aplicável.
+
+  Importante:
+  Ainda não há models neste Bloco 0. O schema será expandido nos blocos de
+  autenticação, equipes, previsões, votos, rankings e dados oficiais versionados.
+*/

@@ -1,0 +1,9 @@
+.next
+out
+build
+coverage
+node_modules
+prisma/generated
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
