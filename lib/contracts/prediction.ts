@@ -1,6 +1,6 @@
-import type { GroupLetter } from "@/lib/contracts/enums";
-import type { NationalTeamId, OfficialBracketSlotId } from "@/lib/contracts/officialData";
-import type { UserId } from "@/lib/contracts/user";
+import type { GroupLetter } from "./enums.ts";
+import type { NationalTeamId, OfficialBracketSlotId } from "./officialData.ts";
+import type { UserId } from "./user.ts";
 
 export type GroupPredictionSelectionDTO = {
   firstPlaceTeamId: NationalTeamId;

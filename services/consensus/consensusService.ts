@@ -1,0 +1,523 @@
+import { prisma } from "../../lib/db/prisma.ts";
+import {
+  CONSENSUS_DECISION_TYPE,
+  VOTING_SESSION_STATUS,
+  VOTING_SESSION_TYPE
+} from "../../lib/contracts/enums.ts";
+import type {
+  CloseVotingSessionInputDTO,
+  OpenGroupVotingSessionInputDTO,
+  OpenKnockoutVotingSessionInputDTO,
+  SubmitGroupVoteInputDTO,
+  SubmitKnockoutTiebreakerInputDTO,
+  SubmitKnockoutVoteInputDTO
+} from "../../lib/contracts/voting.ts";
+import { AppError } from "../../lib/errors/AppError.ts";
+import { assertGroupSelectionIsComplete } from "../../lib/fifa/groupPrediction.ts";
+import { assertApprovedTeamMember, assertTeamCaptain } from "../team/teamService.ts";
+import {
+  calculateGroupConsensus,
+  calculateKnockoutConsensus
+} from "./consensusCalculator.ts";
+import type { GroupVoteSelection } from "./consensusTypes.ts";
+
+export type ApplyGroupTiebreakerInput = CloseVotingSessionInputDTO &
+  GroupVoteSelection & {
+    group: string;
+  };
+
+async function ensureNoOpenVotingSessionForGroup(teamId: string, group: string) {
+  const activeSession = await prisma.votingSession.findFirst({
+    where: {
+      teamId,
+      group,
+      type: VOTING_SESSION_TYPE.GROUP_STAGE,
+      status: {
+        in: [VOTING_SESSION_STATUS.OPEN, VOTING_SESSION_STATUS.TIEBREAKER_REQUIRED]
+      }
+    },
+    select: {
+      id: true
+    }
+  });
+
+  if (activeSession) {
+    throw new AppError({
+      code: "CONFLICT",
+      message: "Já existe uma votação ativa para este grupo.",
+      statusCode: 409
+    });
+  }
+}
+
+async function ensureNoOpenVotingSessionForBracketSlot(teamId: string, bracketSlotId: string) {
+  const activeSession = await prisma.votingSession.findFirst({
+    where: {
+      teamId,
+      bracketSlotId,
+      type: VOTING_SESSION_TYPE.KNOCKOUT,
+      status: {
+        in: [VOTING_SESSION_STATUS.OPEN, VOTING_SESSION_STATUS.TIEBREAKER_REQUIRED]
+      }
+    },
+    select: {
+      id: true
+    }
+  });
+
+  if (activeSession) {
+    throw new AppError({
+      code: "CONFLICT",
+      message: "Já existe uma votação ativa para este confronto.",
+      statusCode: 409
+    });
+  }
+}
+
+async function getVotingSessionOrThrow(votingSessionId: string, teamId: string) {
+  const votingSession = await prisma.votingSession.findUnique({
+    where: {
+      id: votingSessionId
+    }
+  });
+
+  if (!votingSession || votingSession.teamId !== teamId) {
+    throw new AppError({
+      code: "NOT_FOUND",
+      message: "Sessão de votação não encontrada.",
+      statusCode: 404
+    });
+  }
+
+  return votingSession;
+}
+
+export async function openGroupVotingSession(
+  captainUserId: string,
+  input: OpenGroupVotingSessionInputDTO
+) {
+  await assertTeamCaptain(input.teamId, captainUserId);
+  await ensureNoOpenVotingSessionForGroup(input.teamId, input.group);
+
+  return prisma.votingSession.create({
+    data: {
+      teamId: input.teamId,
+      type: VOTING_SESSION_TYPE.GROUP_STAGE,
+      status: VOTING_SESSION_STATUS.OPEN,
+      group: input.group,
+      openedByUserId: captainUserId,
+      openedAt: new Date()
+    }
+  });
+}
+
+export async function openKnockoutVotingSession(
+  captainUserId: string,
+  input: OpenKnockoutVotingSessionInputDTO
+) {
+  await assertTeamCaptain(input.teamId, captainUserId);
+  await ensureNoOpenVotingSessionForBracketSlot(input.teamId, input.bracketSlotId);
+
+  return prisma.votingSession.create({
+    data: {
+      teamId: input.teamId,
+      type: VOTING_SESSION_TYPE.KNOCKOUT,
+      status: VOTING_SESSION_STATUS.OPEN,
+      bracketSlotId: input.bracketSlotId,
+      openedByUserId: captainUserId,
+      openedAt: new Date()
+    }
+  });
+}
+
+export async function submitGroupVote(userId: string, input: SubmitGroupVoteInputDTO) {
+  await assertApprovedTeamMember(input.teamId, userId);
+
+  const votingSession = await getVotingSessionOrThrow(input.votingSessionId, input.teamId);
+
+  if (
+    votingSession.type !== VOTING_SESSION_TYPE.GROUP_STAGE ||
+    votingSession.status !== VOTING_SESSION_STATUS.OPEN ||
+    votingSession.group !== input.group
+  ) {
+    throw new AppError({
+      code: "BUSINESS_RULE_VIOLATION",
+      message: "A sessão de votação de grupo não está aberta para este grupo.",
+      statusCode: 422
+    });
+  }
+
+  assertGroupSelectionIsComplete({
+    group: input.group,
+    firstPlaceTeamId: input.firstPlaceTeamId,
+    secondPlaceTeamId: input.secondPlaceTeamId,
+    thirdPlaceTeamId: input.thirdPlaceTeamId,
+    fourthPlaceTeamId: input.fourthPlaceTeamId
+  });
+
+  return prisma.teamGroupVote.upsert({
+    where: {
+      userId_votingSessionId_teamId_group: {
+        userId,
+        votingSessionId: input.votingSessionId,
+        teamId: input.teamId,
+        group: input.group
+      }
+    },
+    update: {
+      firstPlaceTeamId: input.firstPlaceTeamId,
+      secondPlaceTeamId: input.secondPlaceTeamId,
+      thirdPlaceTeamId: input.thirdPlaceTeamId,
+      fourthPlaceTeamId: input.fourthPlaceTeamId
+    },
+    create: {
+      userId,
+      votingSessionId: input.votingSessionId,
+      teamId: input.teamId,
+      group: input.group,
+      firstPlaceTeamId: input.firstPlaceTeamId,
+      secondPlaceTeamId: input.secondPlaceTeamId,
+      thirdPlaceTeamId: input.thirdPlaceTeamId,
+      fourthPlaceTeamId: input.fourthPlaceTeamId
+    }
+  });
+}
+
+export async function submitKnockoutVote(userId: string, input: SubmitKnockoutVoteInputDTO) {
+  await assertApprovedTeamMember(input.teamId, userId);
+
+  const votingSession = await getVotingSessionOrThrow(input.votingSessionId, input.teamId);
+
+  if (
+    votingSession.type !== VOTING_SESSION_TYPE.KNOCKOUT ||
+    votingSession.status !== VOTING_SESSION_STATUS.OPEN ||
+    votingSession.bracketSlotId !== input.bracketSlotId
+  ) {
+    throw new AppError({
+      code: "BUSINESS_RULE_VIOLATION",
+      message: "A sessão de votação de mata-mata não está aberta para este confronto.",
+      statusCode: 422
+    });
+  }
+
+  return prisma.teamKnockoutVote.upsert({
+    where: {
+      userId_votingSessionId_teamId_bracketSlotId: {
+        userId,
+        votingSessionId: input.votingSessionId,
+        teamId: input.teamId,
+        bracketSlotId: input.bracketSlotId
+      }
+    },
+    update: {
+      winnerTeamId: input.winnerTeamId
+    },
+    create: {
+      userId,
+      votingSessionId: input.votingSessionId,
+      teamId: input.teamId,
+      bracketSlotId: input.bracketSlotId,
+      winnerTeamId: input.winnerTeamId
+    }
+  });
+}
+
+export async function closeVotingSession(
+  captainUserId: string,
+  input: CloseVotingSessionInputDTO
+) {
+  await assertTeamCaptain(input.teamId, captainUserId);
+
+  const votingSession = await getVotingSessionOrThrow(input.votingSessionId, input.teamId);
+
+  if (votingSession.status !== VOTING_SESSION_STATUS.OPEN) {
+    throw new AppError({
+      code: "BUSINESS_RULE_VIOLATION",
+      message: "A sessão de votação não está aberta.",
+      statusCode: 422
+    });
+  }
+
+  if (votingSession.type === VOTING_SESSION_TYPE.GROUP_STAGE) {
+    if (!votingSession.group) {
+      throw new AppError({
+        code: "BUSINESS_RULE_VIOLATION",
+        message: "Sessão de grupo sem grupo definido.",
+        statusCode: 422
+      });
+    }
+
+    const votes = await prisma.teamGroupVote.findMany({
+      where: {
+        teamId: input.teamId,
+        votingSessionId: input.votingSessionId,
+        group: votingSession.group
+      },
+      select: {
+        userId: true,
+        firstPlaceTeamId: true,
+        secondPlaceTeamId: true,
+        thirdPlaceTeamId: true,
+        fourthPlaceTeamId: true
+      }
+    });
+
+    const calculation = calculateGroupConsensus(votingSession.group, votes);
+
+    if (calculation.status === "TIEBREAKER_REQUIRED") {
+      return prisma.votingSession.update({
+        where: {
+          id: input.votingSessionId
+        },
+        data: {
+          status: VOTING_SESSION_STATUS.TIEBREAKER_REQUIRED,
+          closedByUserId: captainUserId,
+          closedAt: new Date(),
+          tiebreakerPayload: calculation.voteSummary
+        }
+      });
+    }
+
+    return prisma.$transaction(async (tx) => {
+      await tx.teamGroupConsensus.upsert({
+        where: {
+          teamId_votingSessionId_group: {
+            teamId: input.teamId,
+            votingSessionId: input.votingSessionId,
+            group: votingSession.group
+          }
+        },
+        update: {
+          ...calculation.selection,
+          decisionType: CONSENSUS_DECISION_TYPE.MAJORITY,
+          decidedByUserId: null,
+          voteSummary: calculation.voteSummary
+        },
+        create: {
+          teamId: input.teamId,
+          votingSessionId: input.votingSessionId,
+          group: votingSession.group,
+          ...calculation.selection,
+          decisionType: CONSENSUS_DECISION_TYPE.MAJORITY,
+          decidedByUserId: null,
+          voteSummary: calculation.voteSummary
+        }
+      });
+
+      return tx.votingSession.update({
+        where: {
+          id: input.votingSessionId
+        },
+        data: {
+          status: VOTING_SESSION_STATUS.CLOSED,
+          closedByUserId: captainUserId,
+          closedAt: new Date(),
+          tiebreakerPayload: null
+        }
+      });
+    });
+  }
+
+  if (!votingSession.bracketSlotId) {
+    throw new AppError({
+      code: "BUSINESS_RULE_VIOLATION",
+      message: "Sessão de mata-mata sem confronto definido.",
+      statusCode: 422
+    });
+  }
+
+  const votes = await prisma.teamKnockoutVote.findMany({
+    where: {
+      teamId: input.teamId,
+      votingSessionId: input.votingSessionId,
+      bracketSlotId: votingSession.bracketSlotId
+    },
+    select: {
+      userId: true,
+      winnerTeamId: true
+    }
+  });
+
+  const calculation = calculateKnockoutConsensus(votes);
+
+  if (calculation.status === "TIEBREAKER_REQUIRED") {
+    return prisma.votingSession.update({
+      where: {
+        id: input.votingSessionId
+      },
+      data: {
+        status: VOTING_SESSION_STATUS.TIEBREAKER_REQUIRED,
+        closedByUserId: captainUserId,
+        closedAt: new Date(),
+        tiebreakerPayload: calculation.voteSummary
+      }
+    });
+  }
+
+  return prisma.$transaction(async (tx) => {
+    await tx.teamKnockoutConsensus.upsert({
+      where: {
+        teamId_votingSessionId_bracketSlotId: {
+          teamId: input.teamId,
+          votingSessionId: input.votingSessionId,
+          bracketSlotId: votingSession.bracketSlotId
+        }
+      },
+      update: {
+        winnerTeamId: calculation.winnerTeamId,
+        decisionType: CONSENSUS_DECISION_TYPE.MAJORITY,
+        decidedByUserId: null,
+        voteSummary: calculation.voteSummary
+      },
+      create: {
+        teamId: input.teamId,
+        votingSessionId: input.votingSessionId,
+        bracketSlotId: votingSession.bracketSlotId,
+        winnerTeamId: calculation.winnerTeamId,
+        decisionType: CONSENSUS_DECISION_TYPE.MAJORITY,
+        decidedByUserId: null,
+        voteSummary: calculation.voteSummary
+      }
+    });
+
+    return tx.votingSession.update({
+      where: {
+        id: input.votingSessionId
+      },
+      data: {
+        status: VOTING_SESSION_STATUS.CLOSED,
+        closedByUserId: captainUserId,
+        closedAt: new Date(),
+        tiebreakerPayload: null
+      }
+    });
+  });
+}
+
+export async function applyCaptainGroupTiebreaker(
+  captainUserId: string,
+  input: ApplyGroupTiebreakerInput
+) {
+  await assertTeamCaptain(input.teamId, captainUserId);
+
+  const votingSession = await getVotingSessionOrThrow(input.votingSessionId, input.teamId);
+
+  if (
+    votingSession.type !== VOTING_SESSION_TYPE.GROUP_STAGE ||
+    votingSession.status !== VOTING_SESSION_STATUS.TIEBREAKER_REQUIRED ||
+    votingSession.group !== input.group
+  ) {
+    throw new AppError({
+      code: "BUSINESS_RULE_VIOLATION",
+      message: "A sessão de grupo não está aguardando voto de minerva.",
+      statusCode: 422
+    });
+  }
+
+  assertGroupSelectionIsComplete({
+    group: input.group,
+    firstPlaceTeamId: input.firstPlaceTeamId,
+    secondPlaceTeamId: input.secondPlaceTeamId,
+    thirdPlaceTeamId: input.thirdPlaceTeamId,
+    fourthPlaceTeamId: input.fourthPlaceTeamId
+  });
+
+  return prisma.$transaction(async (tx) => {
+    await tx.teamGroupConsensus.upsert({
+      where: {
+        teamId_votingSessionId_group: {
+          teamId: input.teamId,
+          votingSessionId: input.votingSessionId,
+          group: input.group
+        }
+      },
+      update: {
+        firstPlaceTeamId: input.firstPlaceTeamId,
+        secondPlaceTeamId: input.secondPlaceTeamId,
+        thirdPlaceTeamId: input.thirdPlaceTeamId,
+        fourthPlaceTeamId: input.fourthPlaceTeamId,
+        decisionType: CONSENSUS_DECISION_TYPE.CAPTAIN_TIEBREAK,
+        decidedByUserId: captainUserId
+      },
+      create: {
+        teamId: input.teamId,
+        votingSessionId: input.votingSessionId,
+        group: input.group,
+        firstPlaceTeamId: input.firstPlaceTeamId,
+        secondPlaceTeamId: input.secondPlaceTeamId,
+        thirdPlaceTeamId: input.thirdPlaceTeamId,
+        fourthPlaceTeamId: input.fourthPlaceTeamId,
+        decisionType: CONSENSUS_DECISION_TYPE.CAPTAIN_TIEBREAK,
+        decidedByUserId: captainUserId,
+        voteSummary: votingSession.tiebreakerPayload
+      }
+    });
+
+    return tx.votingSession.update({
+      where: {
+        id: input.votingSessionId
+      },
+      data: {
+        status: VOTING_SESSION_STATUS.CLOSED,
+        tiebreakerPayload: null
+      }
+    });
+  });
+}
+
+export async function applyCaptainKnockoutTiebreaker(
+  captainUserId: string,
+  input: SubmitKnockoutTiebreakerInputDTO
+) {
+  await assertTeamCaptain(input.teamId, captainUserId);
+
+  const votingSession = await getVotingSessionOrThrow(input.votingSessionId, input.teamId);
+
+  if (
+    votingSession.type !== VOTING_SESSION_TYPE.KNOCKOUT ||
+    votingSession.status !== VOTING_SESSION_STATUS.TIEBREAKER_REQUIRED ||
+    !votingSession.bracketSlotId
+  ) {
+    throw new AppError({
+      code: "BUSINESS_RULE_VIOLATION",
+      message: "A sessão de mata-mata não está aguardando voto de minerva.",
+      statusCode: 422
+    });
+  }
+
+  return prisma.$transaction(async (tx) => {
+    await tx.teamKnockoutConsensus.upsert({
+      where: {
+        teamId_votingSessionId_bracketSlotId: {
+          teamId: input.teamId,
+          votingSessionId: input.votingSessionId,
+          bracketSlotId: votingSession.bracketSlotId
+        }
+      },
+      update: {
+        winnerTeamId: input.selectedTeamId,
+        decisionType: CONSENSUS_DECISION_TYPE.CAPTAIN_TIEBREAK,
+        decidedByUserId: captainUserId
+      },
+      create: {
+        teamId: input.teamId,
+        votingSessionId: input.votingSessionId,
+        bracketSlotId: votingSession.bracketSlotId,
+        winnerTeamId: input.selectedTeamId,
+        decisionType: CONSENSUS_DECISION_TYPE.CAPTAIN_TIEBREAK,
+        decidedByUserId: captainUserId,
+        voteSummary: votingSession.tiebreakerPayload
+      }
+    });
+
+    return tx.votingSession.update({
+      where: {
+        id: input.votingSessionId
+      },
+      data: {
+        status: VOTING_SESSION_STATUS.CLOSED,
+        tiebreakerPayload: null
+      }
+    });
+  });
+}

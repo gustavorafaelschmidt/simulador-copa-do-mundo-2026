@@ -1,6 +1,6 @@
-import type { ActionError, ActionResult } from "@/lib/contracts/actionResult";
-import type { AppErrorDetails } from "@/lib/errors/AppError";
-import { AppError, toAppError } from "@/lib/errors/AppError";
+import type { ActionError, ActionResult } from "../contracts/actionResult.ts";
+import type { AppErrorDetails } from "./AppError.ts";
+import { AppError, toAppError } from "./AppError.ts";
 
 export function success<TData>(data: TData, message?: string): ActionResult<TData> {
   return {

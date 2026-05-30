@@ -3,7 +3,7 @@ import {
   groupLetterSchema,
   nationalTeamIdSchema,
   officialBracketSlotIdSchema
-} from "@/lib/validations/officialData";
+} from "./officialData.ts";
 
 function hasDistinctTeams(value: {
   firstPlaceTeamId: string;

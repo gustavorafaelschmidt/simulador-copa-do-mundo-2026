@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BADGE_RARITY_VALUES, BADGE_TARGET_TYPE_VALUES } from "@/lib/contracts/enums";
+import { BADGE_RARITY_VALUES, BADGE_TARGET_TYPE_VALUES } from "../contracts/enums.ts";
 
 export const badgeCodeSchema = z
   .string()

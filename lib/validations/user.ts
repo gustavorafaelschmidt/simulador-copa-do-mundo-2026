@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { nicknameSchema, urlSchema } from "@/lib/validations/common";
+import { nicknameSchema, urlSchema } from "./common.ts";
 
 export const completeProfileSchema = z.object({
   firstName: z

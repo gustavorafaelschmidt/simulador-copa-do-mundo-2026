@@ -1,4 +1,4 @@
-import type { GroupLetter, KnockoutPhase, OfficialDataStatus } from "@/lib/contracts/enums";
+import type { GroupLetter, KnockoutPhase, OfficialDataStatus } from "./enums.ts";
 
 export type OfficialDataVersionId = string;
 export type NationalTeamId = string;

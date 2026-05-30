@@ -2,14 +2,14 @@ import type {
   CloseVotingSessionInputDTO,
   OpenGroupVotingSessionInputDTO,
   OpenKnockoutVotingSessionInputDTO,
+  SubmitAnyTiebreakerInputDTO,
   SubmitGroupVoteInputDTO,
   SubmitKnockoutVoteInputDTO,
-  SubmitTiebreakerInputDTO,
   TeamGroupConsensusDTO,
   TeamKnockoutConsensusDTO,
   VotingSessionDTO
-} from "@/lib/contracts/voting";
-import type { TeamId } from "@/lib/contracts/team";
+} from "./voting.ts";
+import type { TeamId } from "./team.ts";
 
 export type JoinTeamSocketPayload = {
   teamId: TeamId;
@@ -25,7 +25,7 @@ export type SubmitGroupVoteSocketPayload = SubmitGroupVoteInputDTO;
 
 export type SubmitKnockoutVoteSocketPayload = SubmitKnockoutVoteInputDTO;
 
-export type SubmitTiebreakerSocketPayload = SubmitTiebreakerInputDTO;
+export type SubmitTiebreakerSocketPayload = SubmitAnyTiebreakerInputDTO;
 
 export type VotingStatusUpdatedSocketPayload = {
   votingSession: VotingSessionDTO;

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { RANKING_TYPE_VALUES } from "@/lib/contracts/enums";
+import { RANKING_TYPE_VALUES } from "../contracts/enums.ts";
 
 export const rankingTypeSchema = z.enum(RANKING_TYPE_VALUES);
 

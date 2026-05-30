@@ -1,6 +1,6 @@
-import { OFFICIAL_DATA_STATUS } from "@/lib/contracts/enums";
-import { AppError } from "@/lib/errors/AppError";
-import type { OfficialDataEntity, OfficialDataReadinessReport } from "@/lib/fifa/types";
+import { OFFICIAL_DATA_STATUS } from "../contracts/enums.ts";
+import { AppError } from "../errors/AppError.ts";
+import type { OfficialDataEntity, OfficialDataReadinessReport } from "./types.ts";
 
 type OfficialDataGuardOptions = {
   nodeEnv?: string;

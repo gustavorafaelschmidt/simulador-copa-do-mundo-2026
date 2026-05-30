@@ -1,8 +1,8 @@
-import { prisma } from "@/lib/db/prisma";
+import { prisma } from "../../lib/db/prisma.ts";
 import {
   TEAM_MEMBER_APPROVAL_STATUS,
   TEAM_MEMBER_ROLE
-} from "@/lib/contracts/enums";
+} from "../../lib/contracts/enums.ts";
 import type {
   ChangeTeamMemberRoleInputDTO,
   CreateTeamInputDTO,
@@ -12,9 +12,9 @@ import type {
   TeamDTO,
   TeamId,
   TeamMemberDTO
-} from "@/lib/contracts/team";
-import { AppError } from "@/lib/errors/AppError";
-import { buildTeamSlug, createInviteCode } from "@/services/team/teamUtils";
+} from "../../lib/contracts/team.ts";
+import { AppError } from "../../lib/errors/AppError.ts";
+import { buildTeamSlug, createInviteCode } from "./teamUtils.ts";
 
 type TeamWithMembership = TeamDTO & {
   currentUserRole: keyof typeof TEAM_MEMBER_ROLE;

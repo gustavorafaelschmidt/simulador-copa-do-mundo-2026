@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DEFAULT_PAGE, DEFAULT_PER_PAGE, MAX_PER_PAGE } from "@/lib/contracts/pagination";
+import { DEFAULT_PAGE, DEFAULT_PER_PAGE, MAX_PER_PAGE } from "../contracts/pagination.ts";
 
 export const cuidSchema = z.string().min(1, "Identificador obrigatório.");
 

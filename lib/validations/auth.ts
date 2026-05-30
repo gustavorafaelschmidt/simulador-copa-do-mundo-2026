@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { nicknameSchema } from "@/lib/validations/common";
+import { nicknameSchema } from "./common.ts";
 
 export const emailSchema = z
   .string()

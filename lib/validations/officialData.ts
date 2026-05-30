@@ -3,8 +3,8 @@ import {
   GROUP_LETTER_VALUES,
   KNOCKOUT_PHASE_VALUES,
   OFFICIAL_DATA_STATUS_VALUES
-} from "@/lib/contracts/enums";
-import { cuidSchema } from "@/lib/validations/common";
+} from "../contracts/enums.ts";
+import { cuidSchema } from "./common.ts";
 
 export const groupLetterSchema = z.enum(GROUP_LETTER_VALUES);
 

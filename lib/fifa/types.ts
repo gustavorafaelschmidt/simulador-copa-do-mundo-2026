@@ -2,12 +2,12 @@ import type {
   GroupLetter,
   KnockoutPhase,
   OfficialDataStatus
-} from "@/lib/contracts/enums";
+} from "../contracts/enums.ts";
 import type {
   NationalTeamId,
   OfficialBracketSlotId,
   OfficialDataVersionId
-} from "@/lib/contracts/officialData";
+} from "../contracts/officialData.ts";
 
 export type OfficialDataEntity = {
   id: string;

@@ -1,5 +1,5 @@
-import type { TeamMemberApprovalStatus, TeamMemberRole } from "@/lib/contracts/enums";
-import type { PublicUserDTO, UserId } from "@/lib/contracts/user";
+import type { TeamMemberApprovalStatus, TeamMemberRole } from "./enums.ts";
+import type { PublicUserDTO, UserId } from "./user.ts";
 
 export type TeamId = string;
 export type TeamInviteCode = string;

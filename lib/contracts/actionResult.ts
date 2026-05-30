@@ -1,4 +1,4 @@
-import type { AppErrorCode, AppErrorDetails } from "@/lib/errors/AppError";
+import type { AppErrorCode, AppErrorDetails } from "../errors/AppError.ts";
 
 export type ActionError = {
   code: AppErrorCode;

@@ -2,8 +2,8 @@ import type {
   GroupSelection,
   QualifiedGroupTeams,
   ThirdPlacedCandidate
-} from "@/lib/fifa/types";
-import { AppError } from "@/lib/errors/AppError";
+} from "./types.ts";
+import { AppError } from "../errors/AppError.ts";
 
 export function getGroupSelectionTeamIds(selection: GroupSelection): string[] {
   return [

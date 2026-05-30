@@ -1,6 +1,6 @@
-import type { RankingJobStatus, RankingType } from "@/lib/contracts/enums";
-import type { TeamId } from "@/lib/contracts/team";
-import type { UserId } from "@/lib/contracts/user";
+import type { RankingJobStatus, RankingType } from "./enums.ts";
+import type { TeamId } from "./team.ts";
+import type { UserId } from "./user.ts";
 
 export type RankingSnapshotId = string;
 

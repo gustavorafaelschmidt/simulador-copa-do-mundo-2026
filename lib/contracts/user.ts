@@ -1,4 +1,4 @@
-import type { AuthProvider, GlobalRole } from "@/lib/contracts/enums";
+import type { AuthProvider, GlobalRole } from "./enums.ts";
 
 export type UserId = string;
 

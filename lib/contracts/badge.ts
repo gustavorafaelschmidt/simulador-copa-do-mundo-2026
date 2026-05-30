@@ -1,6 +1,6 @@
-import type { BadgeRarity, BadgeTargetType } from "@/lib/contracts/enums";
-import type { TeamId } from "@/lib/contracts/team";
-import type { UserId } from "@/lib/contracts/user";
+import type { BadgeRarity, BadgeTargetType } from "./enums.ts";
+import type { TeamId } from "./team.ts";
+import type { UserId } from "./user.ts";
 
 export type BadgeDTO = {
   id: string;

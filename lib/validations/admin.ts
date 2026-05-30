@@ -4,8 +4,8 @@ import {
   KNOCKOUT_PHASE_VALUES,
   OFFICIAL_DATA_STATUS_VALUES,
   REAL_RESULT_TYPE_VALUES
-} from "@/lib/contracts/enums";
-import { cuidSchema } from "@/lib/validations/common";
+} from "../contracts/enums.ts";
+import { cuidSchema } from "./common.ts";
 
 export const upsertRealTournamentResultSchema = z.object({
   resultKey: z

@@ -3,10 +3,13 @@ import type {
   GroupLetter,
   VotingSessionStatus,
   VotingSessionType
-} from "@/lib/contracts/enums";
-import type { NationalTeamId, OfficialBracketSlotId } from "@/lib/contracts/officialData";
-import type { TeamId } from "@/lib/contracts/team";
-import type { UserId } from "@/lib/contracts/user";
+} from "./enums.ts";
+import type {
+  NationalTeamId,
+  OfficialBracketSlotId
+} from "./officialData.ts";
+import type { TeamId } from "./team.ts";
+import type { UserId } from "./user.ts";
 
 export type VotingSessionId = string;
 
@@ -58,11 +61,27 @@ export type SubmitKnockoutVoteInputDTO = {
   winnerTeamId: NationalTeamId;
 };
 
-export type SubmitTiebreakerInputDTO = {
+export type SubmitKnockoutTiebreakerInputDTO = {
   teamId: TeamId;
   votingSessionId: VotingSessionId;
   selectedTeamId: NationalTeamId;
 };
+
+export type SubmitGroupTiebreakerInputDTO = {
+  teamId: TeamId;
+  votingSessionId: VotingSessionId;
+  group: GroupLetter;
+  firstPlaceTeamId: NationalTeamId;
+  secondPlaceTeamId: NationalTeamId;
+  thirdPlaceTeamId: NationalTeamId;
+  fourthPlaceTeamId: NationalTeamId;
+};
+
+export type SubmitTiebreakerInputDTO = SubmitKnockoutTiebreakerInputDTO;
+
+export type SubmitAnyTiebreakerInputDTO =
+  | SubmitGroupTiebreakerInputDTO
+  | SubmitKnockoutTiebreakerInputDTO;
 
 export type TeamGroupConsensusDTO = {
   id: string;

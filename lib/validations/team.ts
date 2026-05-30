@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { TEAM_MEMBER_ROLE_VALUES } from "@/lib/contracts/enums";
-import { cuidSchema, slugSchema } from "@/lib/validations/common";
+import { TEAM_MEMBER_ROLE_VALUES } from "../contracts/enums.ts";
+import { cuidSchema, slugSchema } from "./common.ts";
 
 export const createTeamSchema = z.object({
   name: z

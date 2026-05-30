@@ -3,12 +3,12 @@ import type {
   KnockoutPhase,
   OfficialDataStatus,
   RealResultType
-} from "@/lib/contracts/enums";
+} from "./enums.ts";
 import type {
   OfficialBracketSlotId,
   OfficialDataVersionId,
   OfficialMatchId
-} from "@/lib/contracts/officialData";
+} from "./officialData.ts";
 
 export type RealTournamentResultDTO = {
   id: string;

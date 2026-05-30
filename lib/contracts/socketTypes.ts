@@ -1,4 +1,4 @@
-import type { ActionError } from "@/lib/contracts/actionResult";
+import type { ActionError } from "./actionResult.ts";
 import {
   type CloseVotingSessionSocketPayload,
   type ConsensusDefinedSocketPayload,
@@ -12,8 +12,9 @@ import {
   type TiebreakerRequiredSocketPayload,
   type VotingClosedSocketPayload,
   type VotingStatusUpdatedSocketPayload
-} from "@/lib/contracts/socketPayloads";
-import { SOCKET_EVENTS } from "@/lib/contracts/socketEvents";
+} from "./socketPayloads.ts";
+import type { VotingSessionDTO } from "./voting.ts";
+import { SOCKET_EVENTS } from "./socketEvents.ts";
 
 export type SocketAck<TData = null> =
   | {
@@ -28,32 +29,32 @@ export type SocketAck<TData = null> =
 export interface ClientToServerEvents {
   [SOCKET_EVENTS.JOIN_TEAM]: (
     payload: JoinTeamSocketPayload,
-    ack?: (response: SocketAck) => void
+    ack?: (response: SocketAck<{ teamId: string }>) => void
   ) => void;
 
   [SOCKET_EVENTS.OPEN_VOTING_SESSION]: (
     payload: OpenVotingSessionSocketPayload,
-    ack?: (response: SocketAck) => void
+    ack?: (response: SocketAck<{ votingSession: VotingSessionDTO }>) => void
   ) => void;
 
   [SOCKET_EVENTS.CLOSE_VOTING_SESSION]: (
     payload: CloseVotingSessionSocketPayload,
-    ack?: (response: SocketAck) => void
+    ack?: (response: SocketAck<{ votingSession: VotingSessionDTO }>) => void
   ) => void;
 
   [SOCKET_EVENTS.SUBMIT_GROUP_VOTE]: (
     payload: SubmitGroupVoteSocketPayload,
-    ack?: (response: SocketAck) => void
+    ack?: (response: SocketAck<{ voteId: string }>) => void
   ) => void;
 
   [SOCKET_EVENTS.SUBMIT_KNOCKOUT_VOTE]: (
     payload: SubmitKnockoutVoteSocketPayload,
-    ack?: (response: SocketAck) => void
+    ack?: (response: SocketAck<{ voteId: string }>) => void
   ) => void;
 
   [SOCKET_EVENTS.SUBMIT_TIEBREAKER]: (
     payload: SubmitTiebreakerSocketPayload,
-    ack?: (response: SocketAck) => void
+    ack?: (response: SocketAck<{ votingSession: VotingSessionDTO }>) => void
   ) => void;
 }
 
