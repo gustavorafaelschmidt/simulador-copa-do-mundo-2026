@@ -3,23 +3,29 @@
 
   Regra:
   - valores técnicos em inglês;
-  - labels em português devem ficar na camada de UI;
+  - labels em português ficam na UI;
   - Prisma, services, DTOs, Socket.io e Server Actions devem respeitar estes nomes.
 */
+
+export const AUTH_PROVIDER_VALUES = ["CREDENTIALS", "GOOGLE"] as const;
 
 export const AUTH_PROVIDER = {
   CREDENTIALS: "CREDENTIALS",
   GOOGLE: "GOOGLE"
 } as const;
 
-export type AuthProvider = (typeof AUTH_PROVIDER)[keyof typeof AUTH_PROVIDER];
+export type AuthProvider = (typeof AUTH_PROVIDER_VALUES)[number];
+
+export const GLOBAL_ROLE_VALUES = ["USER", "ADMIN_GLOBAL"] as const;
 
 export const GLOBAL_ROLE = {
   USER: "USER",
   ADMIN_GLOBAL: "ADMIN_GLOBAL"
 } as const;
 
-export type GlobalRole = (typeof GLOBAL_ROLE)[keyof typeof GLOBAL_ROLE];
+export type GlobalRole = (typeof GLOBAL_ROLE_VALUES)[number];
+
+export const TEAM_MEMBER_ROLE_VALUES = ["CAPTAIN", "ADMIN", "MEMBER"] as const;
 
 export const TEAM_MEMBER_ROLE = {
   CAPTAIN: "CAPTAIN",
@@ -27,7 +33,14 @@ export const TEAM_MEMBER_ROLE = {
   MEMBER: "MEMBER"
 } as const;
 
-export type TeamMemberRole = (typeof TEAM_MEMBER_ROLE)[keyof typeof TEAM_MEMBER_ROLE];
+export type TeamMemberRole = (typeof TEAM_MEMBER_ROLE_VALUES)[number];
+
+export const TEAM_MEMBER_APPROVAL_STATUS_VALUES = [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "REMOVED"
+] as const;
 
 export const TEAM_MEMBER_APPROVAL_STATUS = {
   PENDING: "PENDING",
@@ -36,16 +49,24 @@ export const TEAM_MEMBER_APPROVAL_STATUS = {
   REMOVED: "REMOVED"
 } as const;
 
-export type TeamMemberApprovalStatus =
-  (typeof TEAM_MEMBER_APPROVAL_STATUS)[keyof typeof TEAM_MEMBER_APPROVAL_STATUS];
+export type TeamMemberApprovalStatus = (typeof TEAM_MEMBER_APPROVAL_STATUS_VALUES)[number];
+
+export const VOTING_SESSION_TYPE_VALUES = ["GROUP_STAGE", "KNOCKOUT"] as const;
 
 export const VOTING_SESSION_TYPE = {
   GROUP_STAGE: "GROUP_STAGE",
   KNOCKOUT: "KNOCKOUT"
 } as const;
 
-export type VotingSessionType =
-  (typeof VOTING_SESSION_TYPE)[keyof typeof VOTING_SESSION_TYPE];
+export type VotingSessionType = (typeof VOTING_SESSION_TYPE_VALUES)[number];
+
+export const VOTING_SESSION_STATUS_VALUES = [
+  "DRAFT",
+  "OPEN",
+  "TIEBREAKER_REQUIRED",
+  "CLOSED",
+  "CANCELLED"
+] as const;
 
 export const VOTING_SESSION_STATUS = {
   DRAFT: "DRAFT",
@@ -55,8 +76,16 @@ export const VOTING_SESSION_STATUS = {
   CANCELLED: "CANCELLED"
 } as const;
 
-export type VotingSessionStatus =
-  (typeof VOTING_SESSION_STATUS)[keyof typeof VOTING_SESSION_STATUS];
+export type VotingSessionStatus = (typeof VOTING_SESSION_STATUS_VALUES)[number];
+
+export const KNOCKOUT_PHASE_VALUES = [
+  "ROUND_OF_32",
+  "ROUND_OF_16",
+  "QUARTER_FINAL",
+  "SEMI_FINAL",
+  "THIRD_PLACE",
+  "FINAL"
+] as const;
 
 export const KNOCKOUT_PHASE = {
   ROUND_OF_32: "ROUND_OF_32",
@@ -67,7 +96,13 @@ export const KNOCKOUT_PHASE = {
   FINAL: "FINAL"
 } as const;
 
-export type KnockoutPhase = (typeof KNOCKOUT_PHASE)[keyof typeof KNOCKOUT_PHASE];
+export type KnockoutPhase = (typeof KNOCKOUT_PHASE_VALUES)[number];
+
+export const CONSENSUS_DECISION_TYPE_VALUES = [
+  "MAJORITY",
+  "CAPTAIN_TIEBREAK",
+  "ADMIN_OVERRIDE"
+] as const;
 
 export const CONSENSUS_DECISION_TYPE = {
   MAJORITY: "MAJORITY",
@@ -75,15 +110,25 @@ export const CONSENSUS_DECISION_TYPE = {
   ADMIN_OVERRIDE: "ADMIN_OVERRIDE"
 } as const;
 
-export type ConsensusDecisionType =
-  (typeof CONSENSUS_DECISION_TYPE)[keyof typeof CONSENSUS_DECISION_TYPE];
+export type ConsensusDecisionType = (typeof CONSENSUS_DECISION_TYPE_VALUES)[number];
+
+export const RANKING_TYPE_VALUES = ["INDIVIDUAL", "TEAM"] as const;
 
 export const RANKING_TYPE = {
   INDIVIDUAL: "INDIVIDUAL",
   TEAM: "TEAM"
 } as const;
 
-export type RankingType = (typeof RANKING_TYPE)[keyof typeof RANKING_TYPE];
+export type RankingType = (typeof RANKING_TYPE_VALUES)[number];
+
+export const REAL_RESULT_TYPE_VALUES = [
+  "GROUP_STANDING",
+  "GROUP_MATCH",
+  "KNOCKOUT_MATCH",
+  "CHAMPION",
+  "RUNNER_UP",
+  "THIRD_PLACE"
+] as const;
 
 export const REAL_RESULT_TYPE = {
   GROUP_STANDING: "GROUP_STANDING",
@@ -94,7 +139,22 @@ export const REAL_RESULT_TYPE = {
   THIRD_PLACE: "THIRD_PLACE"
 } as const;
 
-export type RealResultType = (typeof REAL_RESULT_TYPE)[keyof typeof REAL_RESULT_TYPE];
+export type RealResultType = (typeof REAL_RESULT_TYPE_VALUES)[number];
+
+export const GROUP_LETTER_VALUES = [
+  "A",
+  "B",
+  "C",
+  "D",
+  "E",
+  "F",
+  "G",
+  "H",
+  "I",
+  "J",
+  "K",
+  "L"
+] as const;
 
 export const GROUP_LETTER = {
   A: "A",
@@ -111,7 +171,15 @@ export const GROUP_LETTER = {
   L: "L"
 } as const;
 
-export type GroupLetter = (typeof GROUP_LETTER)[keyof typeof GROUP_LETTER];
+export type GroupLetter = (typeof GROUP_LETTER_VALUES)[number];
+
+export const RANKING_JOB_STATUS_VALUES = [
+  "PENDING",
+  "RUNNING",
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED"
+] as const;
 
 export const RANKING_JOB_STATUS = {
   PENDING: "PENDING",
@@ -121,8 +189,14 @@ export const RANKING_JOB_STATUS = {
   CANCELLED: "CANCELLED"
 } as const;
 
-export type RankingJobStatus =
-  (typeof RANKING_JOB_STATUS)[keyof typeof RANKING_JOB_STATUS];
+export type RankingJobStatus = (typeof RANKING_JOB_STATUS_VALUES)[number];
+
+export const OFFICIAL_DATA_STATUS_VALUES = [
+  "PLACEHOLDER",
+  "PARTIAL",
+  "OFFICIAL",
+  "DEPRECATED"
+] as const;
 
 export const OFFICIAL_DATA_STATUS = {
   PLACEHOLDER: "PLACEHOLDER",
@@ -131,15 +205,18 @@ export const OFFICIAL_DATA_STATUS = {
   DEPRECATED: "DEPRECATED"
 } as const;
 
-export type OfficialDataStatus =
-  (typeof OFFICIAL_DATA_STATUS)[keyof typeof OFFICIAL_DATA_STATUS];
+export type OfficialDataStatus = (typeof OFFICIAL_DATA_STATUS_VALUES)[number];
+
+export const BADGE_TARGET_TYPE_VALUES = ["USER", "TEAM"] as const;
 
 export const BADGE_TARGET_TYPE = {
   USER: "USER",
   TEAM: "TEAM"
 } as const;
 
-export type BadgeTargetType = (typeof BADGE_TARGET_TYPE)[keyof typeof BADGE_TARGET_TYPE];
+export type BadgeTargetType = (typeof BADGE_TARGET_TYPE_VALUES)[number];
+
+export const BADGE_RARITY_VALUES = ["COMMON", "RARE", "EPIC", "LEGENDARY"] as const;
 
 export const BADGE_RARITY = {
   COMMON: "COMMON",
@@ -148,4 +225,4 @@ export const BADGE_RARITY = {
   LEGENDARY: "LEGENDARY"
 } as const;
 
-export type BadgeRarity = (typeof BADGE_RARITY)[keyof typeof BADGE_RARITY];
+export type BadgeRarity = (typeof BADGE_RARITY_VALUES)[number];
