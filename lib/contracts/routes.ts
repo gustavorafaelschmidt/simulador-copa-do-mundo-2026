@@ -12,6 +12,7 @@ export const APP_ROUTES = {
   REGISTER: "/cadastro",
   ONBOARDING: "/onboarding",
   DASHBOARD: "/dashboard",
+  GAMIFICATION: "/dashboard/gamificacao",
   PREDICTIONS: "/dashboard/previsoes",
   PREDICTIONS_GROUPS: "/dashboard/previsoes/grupos",
   PREDICTIONS_KNOCKOUT: "/dashboard/previsoes/mata-mata",
@@ -27,7 +28,8 @@ export const APP_ROUTES = {
   PROFILE_SETTINGS: "/configuracoes/perfil",
 
   ADMIN: "/admin",
-  ADMIN_RESULTS: "/admin/resultados"
+  ADMIN_RESULTS: "/admin/resultados",
+  ADMIN_STATS: "/admin/estatisticas"
 } as const;
 
 export const API_ROUTES = {
