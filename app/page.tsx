@@ -1,11 +1,17 @@
+import { VisualDataSourceBanner } from "../components/world-cup/VisualDataSourceBanner.tsx";
 import { VisualSimulatorShell } from "../components/world-cup/VisualSimulatorShell.tsx";
 import { VisualWorldCupSimulator } from "../components/world-cup/VisualWorldCupSimulator.tsx";
-import { visualDemoGroups } from "../lib/fifa/visualDemoData.ts";
+import { getVisualGroupsForSimulator } from "../lib/fifa/visualOfficialDataAdapter.ts";
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const simulatorData = await getVisualGroupsForSimulator();
+
   return (
     <VisualSimulatorShell activeSection="home">
-      <VisualWorldCupSimulator groups={visualDemoGroups} />
+      <VisualDataSourceBanner message={simulatorData.message} source={simulatorData.source} />
+      <VisualWorldCupSimulator groups={simulatorData.groups} />
     </VisualSimulatorShell>
   );
 }
