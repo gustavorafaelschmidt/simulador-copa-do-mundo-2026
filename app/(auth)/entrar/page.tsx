@@ -12,7 +12,7 @@ export default function LoginPage() {
 
         <h1 className="mt-3 text-2xl font-bold">Entrar</h1>
 
-        <form action={loginWithCredentialsAction} className="mt-6 space-y-4">
+        <form action={loginWithCredentialsAction as unknown as (formData: FormData) => Promise<void>} className="mt-6 space-y-4">
           <label className="block">
             <span className="text-sm font-medium">Email</span>
             <input
@@ -43,7 +43,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <form action={signInWithGoogleAction} className="mt-3">
+        <form action={signInWithGoogleAction as unknown as (formData: FormData) => Promise<void>} className="mt-3">
           <button
             className="w-full rounded-xl border border-app-border px-4 py-2 font-semibold"
             type="submit"

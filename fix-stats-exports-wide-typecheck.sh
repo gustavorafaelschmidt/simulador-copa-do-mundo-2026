@@ -1,3 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "==> Aplicando correção ampla — exports de stats sem ambiguidade..."
+
+if [ ! -f "package.json" ]; then
+  echo "ERRO: rode este script na raiz do projeto."
+  exit 1
+fi
+
+if [ ! -f "services/stats/globalStatsService.ts" ] || [ ! -f "services/stats/index.ts" ]; then
+  echo "ERRO: arquivos de stats não encontrados."
+  exit 1
+fi
+
+mkdir -p .backup/stats-exports-wide-typecheck
+cp services/stats/globalStatsService.ts .backup/stats-exports-wide-typecheck/globalStatsService.ts.backup
+cp services/stats/index.ts .backup/stats-exports-wide-typecheck/index.ts.backup
+
+cat > services/stats/globalStatsService.ts <<'EOF'
 import { prisma } from "../../lib/db/prisma.ts";
 import {
   buildGlobalStatsPayload,
@@ -87,3 +107,23 @@ export async function getLatestGlobalStatSnapshot(): Promise<GlobalStatSnapshotD
 
   return snapshot ? toGlobalStatSnapshotDTO(snapshot) : null;
 }
+EOF
+
+cat > services/stats/index.ts <<'EOF'
+export * from "./globalStatsCalculator.ts";
+export * from "./globalStatsService.ts";
+export * from "./statsLabels.ts";
+EOF
+
+echo "==> Correção aplicada."
+echo ""
+echo "Agora rode:"
+echo "  npm run lint"
+echo "  npm run test"
+echo "  npm run db:generate"
+echo "  npm run db:seed"
+echo "  npm run build"
+echo ""
+echo "Se passar, pode rodar:"
+echo "  npm run dev"
+echo "  npm run socket:dev"

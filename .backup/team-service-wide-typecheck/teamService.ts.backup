@@ -480,11 +480,6 @@ export async function reviewTeamMember(
     });
   }
 
-  /*
-    Regra crítica:
-    CAPTAIN representa o criador/dono da equipe e não pode ser atribuído ou removido
-    por esta ação comum. Promoções/rebaixamentos aqui são limitados a ADMIN/MEMBER.
-  */
   if (member.role === TEAM_MEMBER_ROLE.CAPTAIN) {
     throw new AppError({
       code: "BUSINESS_RULE_VIOLATION",
@@ -547,7 +542,7 @@ export async function changeTeamMemberRole(
     });
   }
 
-  if (member.role === TEAM_MEMBER_ROLE.CAPTAIN) {
+  if (member.role === TEAM_MEMBER_ROLE.CAPTAIN || input.role === TEAM_MEMBER_ROLE.CAPTAIN) {
     throw new AppError({
       code: "BUSINESS_RULE_VIOLATION",
       message: "O papel CAPTAIN não pode ser alterado por esta ação.",

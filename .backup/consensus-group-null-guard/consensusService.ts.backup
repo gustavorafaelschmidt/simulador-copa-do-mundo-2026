@@ -252,7 +252,7 @@ export async function closeVotingSession(
       where: {
         teamId: input.teamId,
         votingSessionId: input.votingSessionId,
-        group: votingSession.group as GroupLetter
+        group: votingSession.group
       },
       select: {
         userId: true,
@@ -285,7 +285,7 @@ export async function closeVotingSession(
           teamId_votingSessionId_group: {
             teamId: input.teamId,
             votingSessionId: input.votingSessionId,
-            group: votingSession.group as GroupLetter
+            group: votingSession.group
           }
         },
         update: {
@@ -297,7 +297,7 @@ export async function closeVotingSession(
         create: {
           teamId: input.teamId,
           votingSessionId: input.votingSessionId,
-          group: votingSession.group as GroupLetter,
+          group: votingSession.group,
           ...calculation.selection,
           decisionType: CONSENSUS_DECISION_TYPE.MAJORITY,
           decidedByUserId: null,
@@ -312,7 +312,8 @@ export async function closeVotingSession(
         data: {
           status: VOTING_SESSION_STATUS.CLOSED,
           closedByUserId: captainUserId,
-          closedAt: new Date()
+          closedAt: new Date(),
+          tiebreakerPayload: null
         }
       });
     });
@@ -330,7 +331,7 @@ export async function closeVotingSession(
     where: {
       teamId: input.teamId,
       votingSessionId: input.votingSessionId,
-      bracketSlotId: votingSession.bracketSlotId as string
+      bracketSlotId: votingSession.bracketSlotId
     },
     select: {
       userId: true,
@@ -360,7 +361,7 @@ export async function closeVotingSession(
         teamId_votingSessionId_bracketSlotId: {
           teamId: input.teamId,
           votingSessionId: input.votingSessionId,
-          bracketSlotId: votingSession.bracketSlotId as string
+          bracketSlotId: votingSession.bracketSlotId
         }
       },
       update: {
@@ -372,7 +373,7 @@ export async function closeVotingSession(
       create: {
         teamId: input.teamId,
         votingSessionId: input.votingSessionId,
-        bracketSlotId: votingSession.bracketSlotId as string,
+        bracketSlotId: votingSession.bracketSlotId,
         winnerTeamId: calculation.winnerTeamId,
         decisionType: CONSENSUS_DECISION_TYPE.MAJORITY,
         decidedByUserId: null,
@@ -387,7 +388,8 @@ export async function closeVotingSession(
       data: {
         status: VOTING_SESSION_STATUS.CLOSED,
         closedByUserId: captainUserId,
-        closedAt: new Date()
+        closedAt: new Date(),
+        tiebreakerPayload: null
       }
     });
   });
@@ -448,7 +450,7 @@ export async function applyCaptainGroupTiebreaker(
         fourthPlaceTeamId: input.fourthPlaceTeamId,
         decisionType: CONSENSUS_DECISION_TYPE.CAPTAIN_TIEBREAK,
         decidedByUserId: captainUserId,
-        voteSummary: votingSession.tiebreakerPayload as never
+        voteSummary: votingSession.tiebreakerPayload
       }
     });
 
@@ -457,7 +459,8 @@ export async function applyCaptainGroupTiebreaker(
         id: input.votingSessionId
       },
       data: {
-        status: VOTING_SESSION_STATUS.CLOSED
+        status: VOTING_SESSION_STATUS.CLOSED,
+        tiebreakerPayload: null
       }
     });
   });
@@ -489,7 +492,7 @@ export async function applyCaptainKnockoutTiebreaker(
         teamId_votingSessionId_bracketSlotId: {
           teamId: input.teamId,
           votingSessionId: input.votingSessionId,
-          bracketSlotId: votingSession.bracketSlotId as string
+          bracketSlotId: votingSession.bracketSlotId
         }
       },
       update: {
@@ -500,11 +503,11 @@ export async function applyCaptainKnockoutTiebreaker(
       create: {
         teamId: input.teamId,
         votingSessionId: input.votingSessionId,
-        bracketSlotId: votingSession.bracketSlotId as string,
+        bracketSlotId: votingSession.bracketSlotId,
         winnerTeamId: input.selectedTeamId,
         decisionType: CONSENSUS_DECISION_TYPE.CAPTAIN_TIEBREAK,
         decidedByUserId: captainUserId,
-        voteSummary: votingSession.tiebreakerPayload as never
+        voteSummary: votingSession.tiebreakerPayload
       }
     });
 
@@ -513,7 +516,8 @@ export async function applyCaptainKnockoutTiebreaker(
         id: input.votingSessionId
       },
       data: {
-        status: VOTING_SESSION_STATUS.CLOSED
+        status: VOTING_SESSION_STATUS.CLOSED,
+        tiebreakerPayload: null
       }
     });
   });

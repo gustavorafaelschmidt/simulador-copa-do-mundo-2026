@@ -81,7 +81,7 @@ export default async function TeamDetailsPage({ params }: TeamDetailsPageProps) 
                       <div className="flex flex-wrap gap-2">
                         {isPending ? (
                           <>
-                            <form action={reviewTeamMemberAction}>
+                            <form action={reviewTeamMemberAction as unknown as (formData: FormData) => Promise<void>}>
                               <input name="teamId" type="hidden" value={team.id} />
                               <input name="memberId" type="hidden" value={member.id} />
                               <input name="approvalStatus" type="hidden" value="APPROVED" />
@@ -93,7 +93,7 @@ export default async function TeamDetailsPage({ params }: TeamDetailsPageProps) 
                               </button>
                             </form>
 
-                            <form action={reviewTeamMemberAction}>
+                            <form action={reviewTeamMemberAction as unknown as (formData: FormData) => Promise<void>}>
                               <input name="teamId" type="hidden" value={team.id} />
                               <input name="memberId" type="hidden" value={member.id} />
                               <input name="approvalStatus" type="hidden" value="REJECTED" />
@@ -108,7 +108,7 @@ export default async function TeamDetailsPage({ params }: TeamDetailsPageProps) 
                         ) : null}
 
                         {member.approvalStatus === TEAM_MEMBER_APPROVAL_STATUS.APPROVED ? (
-                          <form action={changeTeamMemberRoleAction}>
+                          <form action={changeTeamMemberRoleAction as unknown as (formData: FormData) => Promise<void>}>
                             <input name="teamId" type="hidden" value={team.id} />
                             <input name="memberId" type="hidden" value={member.id} />
                             <select
@@ -129,7 +129,7 @@ export default async function TeamDetailsPage({ params }: TeamDetailsPageProps) 
                         ) : null}
 
                         {member.approvalStatus !== TEAM_MEMBER_APPROVAL_STATUS.REMOVED ? (
-                          <form action={removeTeamMemberAction}>
+                          <form action={removeTeamMemberAction as unknown as (formData: FormData) => Promise<void>}>
                             <input name="teamId" type="hidden" value={team.id} />
                             <input name="memberId" type="hidden" value={member.id} />
                             <button

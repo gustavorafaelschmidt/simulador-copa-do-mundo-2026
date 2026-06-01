@@ -1,6 +1,30 @@
 import type { ActionError, ActionResult } from "../contracts/actionResult.ts";
-import type { AppErrorDetails } from "./AppError.ts";
-import { AppError, toAppError } from "./AppError.ts";
+import { AppError } from "./AppError.ts";
+
+function toActionError(error: unknown): ActionError {
+  if (error instanceof AppError) {
+    return {
+      code: error.code,
+      message: error.message,
+      statusCode: error.statusCode,
+      details: error.details
+    };
+  }
+
+  if (error instanceof Error) {
+    return {
+      code: "INTERNAL_ERROR",
+      message: error.message,
+      statusCode: 500
+    };
+  }
+
+  return {
+    code: "INTERNAL_ERROR",
+    message: "Erro interno inesperado.",
+    statusCode: 500
+  };
+}
 
 export function success<TData>(data: TData, message?: string): ActionResult<TData> {
   return {
@@ -10,60 +34,50 @@ export function success<TData>(data: TData, message?: string): ActionResult<TDat
   };
 }
 
-export function error(input: unknown): ActionResult {
-  const appError = toAppError(input);
-
+export function error<TData = never>(errorInput: unknown): ActionResult<TData> {
   return {
     ok: false,
-    error: {
-      code: appError.code,
-      message: appError.message,
-      statusCode: appError.statusCode,
-      ...(appError.details !== undefined ? { details: appError.details } : {})
-    }
+    error: toActionError(errorInput)
   };
 }
 
-export function validationError(
+export function validationError<TData = never>(
   message = "Dados inválidos.",
-  details?: AppErrorDetails
-): ActionResult {
-  return buildActionError({
-    code: "VALIDATION_ERROR",
-    message,
-    statusCode: 422,
-    details
-  });
-}
-
-export function unauthorized(message = "Autenticação obrigatória."): ActionResult {
-  return buildActionError({
-    code: "UNAUTHORIZED",
-    message,
-    statusCode: 401
-  });
-}
-
-export function forbidden(message = "Você não tem permissão para executar esta ação."): ActionResult {
-  return buildActionError({
-    code: "FORBIDDEN",
-    message,
-    statusCode: 403
-  });
-}
-
-function buildActionError(actionError: ActionError): ActionResult {
+  details?: unknown
+): ActionResult<TData> {
   return {
     ok: false,
     error: {
-      code: actionError.code,
-      message: actionError.message,
-      statusCode: actionError.statusCode,
-      ...(actionError.details !== undefined ? { details: actionError.details } : {})
+      code: "VALIDATION_ERROR",
+      message,
+      statusCode: 422,
+      details: details as ActionError["details"]
     }
   };
 }
 
-export function throwAppError(params: ConstructorParameters<typeof AppError>[0]): never {
-  throw new AppError(params);
+export function unauthorized<TData = never>(
+  message = "Autenticação obrigatória."
+): ActionResult<TData> {
+  return {
+    ok: false,
+    error: {
+      code: "UNAUTHORIZED",
+      message,
+      statusCode: 401
+    }
+  };
+}
+
+export function forbidden<TData = never>(
+  message = "Você não tem permissão para executar esta ação."
+): ActionResult<TData> {
+  return {
+    ok: false,
+    error: {
+      code: "FORBIDDEN",
+      message,
+      statusCode: 403
+    }
+  };
 }

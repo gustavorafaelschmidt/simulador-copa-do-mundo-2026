@@ -55,7 +55,7 @@ export default async function TeamsPage() {
           <section className="rounded-app border border-app-border bg-app-surface p-5 shadow-app">
             <h2 className="text-lg font-bold">Criar equipe</h2>
 
-            <form action={createTeamAction} className="mt-4 space-y-4">
+            <form action={createTeamAction as unknown as (formData: FormData) => Promise<void>} className="mt-4 space-y-4">
               <label className="block">
                 <span className="text-sm font-medium">Nome</span>
                 <input
@@ -106,7 +106,7 @@ export default async function TeamsPage() {
           <section className="rounded-app border border-app-border bg-app-surface p-5 shadow-app">
             <h2 className="text-lg font-bold">Entrar por código</h2>
 
-            <form action={joinTeamByCodeAction} className="mt-4 space-y-4">
+            <form action={joinTeamByCodeAction as unknown as (formData: FormData) => Promise<void>} className="mt-4 space-y-4">
               <label className="block">
                 <span className="text-sm font-medium">Código de convite</span>
                 <input

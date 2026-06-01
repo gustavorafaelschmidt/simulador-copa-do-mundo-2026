@@ -12,7 +12,7 @@ export default function RegisterPage() {
 
         <h1 className="mt-3 text-2xl font-bold">Criar cadastro</h1>
 
-        <form action={registerWithCredentialsAction} className="mt-6 space-y-4">
+        <form action={registerWithCredentialsAction as unknown as (formData: FormData) => Promise<void>} className="mt-6 space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className="text-sm font-medium">Nome</span>

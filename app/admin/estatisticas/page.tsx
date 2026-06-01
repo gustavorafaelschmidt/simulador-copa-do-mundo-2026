@@ -34,7 +34,7 @@ export default async function AdminStatsPage() {
             }).format(new Date(snapshot.calculatedAt))}
           </p>
 
-          <form action={createGlobalStatSnapshotAction} className="mt-5">
+          <form action={createGlobalStatSnapshotAction as unknown as (formData: FormData) => Promise<void>} className="mt-5">
             <button
               className="rounded-xl border border-app-border px-4 py-2 font-semibold"
               type="submit"

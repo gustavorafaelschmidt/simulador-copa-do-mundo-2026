@@ -67,7 +67,7 @@ export function KnockoutSlotCard({ slot, teams }: KnockoutSlotCardProps) {
         </p>
       ) : null}
 
-      <form action={saveIndividualKnockoutPredictionAction} className="mt-5 space-y-4">
+      <form action={saveIndividualKnockoutPredictionAction as unknown as (formData: FormData) => Promise<void>} className="mt-5 space-y-4">
         <input name="bracketSlotId" type="hidden" value={slot.id} />
 
         <SelectField

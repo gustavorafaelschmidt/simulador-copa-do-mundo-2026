@@ -1,34 +1,26 @@
 import { prisma } from "../../lib/db/prisma.ts";
+import type { RankingType } from "../../lib/contracts/enums.ts";
 import {
   buildGlobalStatsPayload,
   type GlobalStatsPayload
 } from "./globalStatsCalculator.ts";
 
-const GLOBAL_STATS_SNAPSHOT_KEY_PREFIX = "global_stats";
-
 export type GlobalStatSnapshotDTO = {
   id: string;
-  statKey: string;
   calculatedAt: string;
   payload: GlobalStatsPayload;
 };
 
 function toGlobalStatSnapshotDTO(snapshot: {
   id: string;
-  statKey: string;
   calculatedAt: Date;
   payload: unknown;
 }): GlobalStatSnapshotDTO {
   return {
     id: snapshot.id,
-    statKey: snapshot.statKey,
     calculatedAt: snapshot.calculatedAt.toISOString(),
     payload: snapshot.payload as GlobalStatsPayload
   };
-}
-
-function buildGlobalStatSnapshotKey(date = new Date()): string {
-  return `${GLOBAL_STATS_SNAPSHOT_KEY_PREFIX}:${date.toISOString()}`;
 }
 
 export async function calculateGlobalStatsPayload(): Promise<GlobalStatsPayload> {
@@ -65,13 +57,10 @@ export async function calculateGlobalStatsPayload(): Promise<GlobalStatsPayload>
 
 export async function createGlobalStatSnapshot(): Promise<GlobalStatSnapshotDTO> {
   const payload = await calculateGlobalStatsPayload();
-  const calculatedAt = new Date();
 
   const snapshot = await prisma.globalStatSnapshot.create({
     data: {
-      statKey: buildGlobalStatSnapshotKey(calculatedAt),
-      calculatedAt,
-      payload: payload as never
+      payload
     }
   });
 
@@ -86,4 +75,8 @@ export async function getLatestGlobalStatSnapshot(): Promise<GlobalStatSnapshotD
   });
 
   return snapshot ? toGlobalStatSnapshotDTO(snapshot) : null;
+}
+
+export function buildRankingStatsLabel(type: RankingType): string {
+  return type === "INDIVIDUAL" ? "Ranking individual" : "Ranking por equipes";
 }

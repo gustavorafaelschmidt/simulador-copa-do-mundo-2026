@@ -23,7 +23,7 @@ export default async function OnboardingPage() {
 
         <div className="mt-6">
           <ProfileForm
-            action={completeOnboardingAction}
+            action={completeOnboardingAction as unknown as (formData: FormData) => Promise<void>}
             profile={profile}
             submitLabel="Concluir onboarding"
           />

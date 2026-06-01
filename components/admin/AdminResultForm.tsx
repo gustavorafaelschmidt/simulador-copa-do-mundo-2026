@@ -8,7 +8,7 @@ import { upsertRealTournamentResultAction } from "../../actions/adminResults.ts"
 export function AdminResultForm() {
   return (
     <form
-      action={upsertRealTournamentResultAction}
+      action={upsertRealTournamentResultAction as unknown as (formData: FormData) => Promise<void>}
       className="rounded-app border border-app-border bg-app-surface p-5 shadow-app"
     >
       <p className="text-sm font-semibold uppercase tracking-wide text-app-primary">

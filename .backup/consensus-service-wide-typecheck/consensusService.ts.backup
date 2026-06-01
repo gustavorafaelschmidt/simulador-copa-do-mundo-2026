@@ -448,7 +448,7 @@ export async function applyCaptainGroupTiebreaker(
         fourthPlaceTeamId: input.fourthPlaceTeamId,
         decisionType: CONSENSUS_DECISION_TYPE.CAPTAIN_TIEBREAK,
         decidedByUserId: captainUserId,
-        voteSummary: votingSession.tiebreakerPayload as never
+        voteSummary: votingSession.tiebreakerPayload
       }
     });
 
@@ -504,7 +504,7 @@ export async function applyCaptainKnockoutTiebreaker(
         winnerTeamId: input.selectedTeamId,
         decisionType: CONSENSUS_DECISION_TYPE.CAPTAIN_TIEBREAK,
         decidedByUserId: captainUserId,
-        voteSummary: votingSession.tiebreakerPayload as never
+        voteSummary: votingSession.tiebreakerPayload
       }
     });
 

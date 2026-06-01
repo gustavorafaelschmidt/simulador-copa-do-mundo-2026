@@ -1,4 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "==> Aplicando correção ampla — análise do globalStatsService inteiro para type-check Prisma..."
+
+if [ ! -f "package.json" ] || [ ! -f "services/stats/globalStatsService.ts" ]; then
+  echo "ERRO: rode este script na raiz do projeto."
+  exit 1
+fi
+
+mkdir -p .backup/global-stats-service-wide-typecheck
+cp services/stats/globalStatsService.ts .backup/global-stats-service-wide-typecheck/globalStatsService.ts.backup
+
+cat > services/stats/globalStatsService.ts <<'EOF'
 import { prisma } from "../../lib/db/prisma.ts";
+import type { RankingType } from "../../lib/contracts/enums.ts";
 import {
   buildGlobalStatsPayload,
   type GlobalStatsPayload
@@ -67,6 +82,11 @@ export async function createGlobalStatSnapshot(): Promise<GlobalStatSnapshotDTO>
   const payload = await calculateGlobalStatsPayload();
   const calculatedAt = new Date();
 
+  /*
+    GlobalStatSnapshot exige statKey no schema Prisma.
+    A chave recebe timestamp ISO para preservar histórico real de snapshots
+    e evitar colisão em recriações administrativas.
+  */
   const snapshot = await prisma.globalStatSnapshot.create({
     data: {
       statKey: buildGlobalStatSnapshotKey(calculatedAt),
@@ -87,3 +107,21 @@ export async function getLatestGlobalStatSnapshot(): Promise<GlobalStatSnapshotD
 
   return snapshot ? toGlobalStatSnapshotDTO(snapshot) : null;
 }
+
+export function buildRankingStatsLabel(type: RankingType): string {
+  return type === "INDIVIDUAL" ? "Ranking individual" : "Ranking por equipes";
+}
+EOF
+
+echo "==> Correção aplicada."
+echo ""
+echo "Agora rode:"
+echo "  npm run lint"
+echo "  npm run test"
+echo "  npm run db:generate"
+echo "  npm run db:seed"
+echo "  npm run build"
+echo ""
+echo "Se passar, pode rodar:"
+echo "  npm run dev"
+echo "  npm run socket:dev"

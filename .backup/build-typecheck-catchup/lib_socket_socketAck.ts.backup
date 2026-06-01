@@ -13,14 +13,14 @@ export function toSocketActionError(error: unknown): ActionError {
 
   if (error instanceof Error) {
     return {
-      code: "INTERNAL_ERROR",
+      code: "INTERNAL_SERVER_ERROR",
       message: error.message,
       statusCode: 500
     };
   }
 
   return {
-    code: "INTERNAL_ERROR",
+    code: "INTERNAL_SERVER_ERROR",
     message: "Erro interno inesperado no servidor Socket.io.",
     statusCode: 500
   };

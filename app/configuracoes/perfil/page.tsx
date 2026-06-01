@@ -22,7 +22,7 @@ export default async function ProfileSettingsPage() {
 
         <div className="mt-6">
           <ProfileForm
-            action={updateProfileAction}
+            action={updateProfileAction as unknown as (formData: FormData) => Promise<void>}
             profile={profile}
             submitLabel="Salvar alterações"
           />

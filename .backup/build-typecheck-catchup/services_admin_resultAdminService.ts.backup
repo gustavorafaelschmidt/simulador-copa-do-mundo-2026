@@ -1,9 +1,7 @@
 import { prisma } from "../../lib/db/prisma.ts";
 import {
   OFFICIAL_DATA_STATUS,
-  REAL_RESULT_TYPE,
-  type GroupLetter,
-  type KnockoutPhase
+  REAL_RESULT_TYPE
 } from "../../lib/contracts/enums.ts";
 import type { RealTournamentResultDTO } from "../../lib/contracts/admin.ts";
 import { AppError } from "../../lib/errors/AppError.ts";
@@ -17,8 +15,8 @@ import { toRealTournamentResultDTO } from "./resultMapper.ts";
 export type UpsertRealResultServiceInput = {
   resultKey?: string;
   type: keyof typeof REAL_RESULT_TYPE;
-  group?: GroupLetter;
-  knockoutPhase?: KnockoutPhase;
+  group?: string;
+  knockoutPhase?: string;
   officialMatchId?: string;
   bracketSlotId?: string;
   payload: unknown;
@@ -85,7 +83,7 @@ export async function upsertRealTournamentResult(
   assertResultContextIsValid(input);
 
   const resultKey = resolveResultKey(input);
-  const validatedPayload = validateRealResultPayload(input.type, input.payload) as never;
+  const validatedPayload = validateRealResultPayload(input.type, input.payload);
 
   const result = await prisma.realTournamentResult.upsert({
     where: {

@@ -23,7 +23,7 @@ export default async function AdminResultsPage() {
             dados confirmados por documento oficial ou resultado real validado.
           </p>
 
-          <form action={recalculateAllRankingsAction} className="mt-5">
+          <form action={recalculateAllRankingsAction as unknown as (formData: FormData) => Promise<void>} className="mt-5">
             <button
               className="rounded-xl border border-app-border px-4 py-2 font-semibold"
               type="submit"

@@ -63,7 +63,7 @@ export function GroupPredictionCard({ group }: GroupPredictionCardProps) {
         </ol>
       </div>
 
-      <form action={saveIndividualGroupPredictionAction} className="mt-5 space-y-4">
+      <form action={saveIndividualGroupPredictionAction as unknown as (formData: FormData) => Promise<void>} className="mt-5 space-y-4">
         <input name="group" type="hidden" value={group.letter} />
 
         <SelectField

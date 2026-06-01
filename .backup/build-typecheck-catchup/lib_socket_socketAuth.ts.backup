@@ -16,7 +16,7 @@ export async function authenticateSocketRequest(
 
   if (!secret) {
     throw new AppError({
-      code: "INTERNAL_ERROR",
+      code: "CONFIGURATION_ERROR",
       message: "AUTH_SECRET ou NEXTAUTH_SECRET precisa estar configurado para autenticar Socket.io.",
       statusCode: 500
     });

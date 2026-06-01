@@ -21,7 +21,7 @@ export default async function GamificationPage() {
             Badges são concedidas automaticamente conforme você participa do simulador.
           </p>
 
-          <form action={refreshMyBadgesAction} className="mt-5">
+          <form action={refreshMyBadgesAction as unknown as (formData: FormData) => Promise<void>} className="mt-5">
             <button
               className="rounded-xl border border-app-border px-4 py-2 font-semibold"
               type="submit"
