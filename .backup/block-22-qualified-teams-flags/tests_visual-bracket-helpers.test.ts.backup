@@ -12,9 +12,9 @@ function fullGroupPicks(): VisualGroupPicks {
     visualDemoGroups.map((group) => [
       group.letter,
       {
-        first: group.teams[0]?.id,
-        second: group.teams[1]?.id,
-        third: group.teams[2]?.id
+        first: `${group.letter}1`,
+        second: `${group.letter}2`,
+        third: `${group.letter}3`
       }
     ])
   );

@@ -3,13 +3,6 @@ import {
   type VisualDemoGroup,
   type VisualDemoTeam
 } from "./visualDemoData.ts";
-import {
-  fifaCodeToCountryCode,
-  fifaCodeToFlagEmoji,
-  getFlagImageUrl,
-  worldCup2026QualifiedFifaCodes,
-  worldCup2026QualifiedTeamNames
-} from "./worldCup2026QualifiedTeams.ts";
 
 export type VisualSimulatorDataSource = "database" | "demo_fallback";
 
@@ -70,18 +63,11 @@ function makeDemoLikeTeam(row: VisualTeamRow, index: number): VisualDemoTeam | n
     return null;
   }
 
-  const fifaCode = row.fifa_code?.trim().toUpperCase() || undefined;
-  const countryCode = fifaCode ? fifaCodeToCountryCode.get(fifaCode) : undefined;
-  const flag = fifaCode ? fifaCodeToFlagEmoji.get(fifaCode) : undefined;
-
   return {
-    id: fifaCode || row.id,
-    fifaCode,
+    id: row.id,
     name,
-    shortName: normalizeShortName(name, row.short_name ?? fifaCode),
-    flag: flag ?? normalizeFlagEmoji(row.flag_emoji),
-    countryCode,
-    flagImageUrl: countryCode ? getFlagImageUrl(countryCode) : undefined,
+    shortName: normalizeShortName(name, row.short_name ?? row.fifa_code),
+    flag: normalizeFlagEmoji(row.flag_emoji),
     seed: row.seed ?? index + 1
   };
 }
@@ -155,25 +141,19 @@ function shouldUseFallback(groups: VisualDemoGroup[]): boolean {
     return true;
   }
 
-  if (groups.some((group) => group.teams.length !== 4)) {
-    return true;
-  }
-
-  const allTeams = groups.flatMap((group) => group.teams);
-
-  return allTeams.some((team) => {
-    if (team.fifaCode && worldCup2026QualifiedFifaCodes.has(team.fifaCode)) {
-      return false;
-    }
-
-    return !worldCup2026QualifiedTeamNames.has(team.name);
-  });
+  return groups.every((group) => group.teams.length === 0);
 }
 
 async function loadVisualRowsFromDatabase(): Promise<{
   groupRows: VisualGroupRow[];
   teamRows: VisualTeamRow[];
 }> {
+  /*
+    Import dinâmico intencional:
+    este módulo também exporta funções puras usadas em testes unitários.
+    Importar Prisma no topo do arquivo força DATABASE_URL durante testes puros.
+    Mantemos Prisma restrito ao fluxo server-side que realmente acessa o banco.
+  */
   const { prisma } = await import("../db/prisma.ts");
 
   const groupRows = await prisma.$queryRaw<VisualGroupRow[]>`
@@ -206,6 +186,12 @@ async function loadVisualRowsFromDatabase(): Promise<{
 
 export async function getVisualGroupsForSimulator(): Promise<VisualSimulatorData> {
   try {
+    /*
+      Integração tolerante:
+      - Em desenvolvimento, tentamos ler os dados versionados do banco.
+      - Se a estrutura oficial ainda estiver incompleta, retornamos demo fallback.
+      - Produção continuará protegida pelas regras de readiness/dados oficiais.
+    */
     const { groupRows, teamRows } = await loadVisualRowsFromDatabase();
 
     const groups = normalizeVisualGroupsFromDatabaseRows({
@@ -218,21 +204,21 @@ export async function getVisualGroupsForSimulator(): Promise<VisualSimulatorData
         groups: visualDemoGroups,
         source: "demo_fallback",
         message:
-          "Dados oficiais do banco ainda não batem com os 48 classificados. Exibindo grupos confirmados em modo visual seguro."
+          "Dados oficiais ainda incompletos. Exibindo modo demo seguro para desenvolvimento."
       };
     }
 
     return {
       groups,
       source: "database",
-      message: "Dados carregados do banco local e validados contra os classificados da Copa 2026."
+      message: "Dados carregados do banco local."
     };
   } catch {
     return {
       groups: visualDemoGroups,
       source: "demo_fallback",
       message:
-        "Não foi possível carregar grupos do banco. Exibindo grupos confirmados em modo visual seguro."
+        "Não foi possível carregar grupos do banco. Exibindo modo demo seguro para desenvolvimento."
     };
   }
 }

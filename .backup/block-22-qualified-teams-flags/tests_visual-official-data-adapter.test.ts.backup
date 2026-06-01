@@ -14,10 +14,10 @@ describe("visual official data adapter", () => {
       teamRows: [
         {
           id: "team-a1",
-          name: "México",
-          short_name: "MEX",
-          fifa_code: "MEX",
-          flag_emoji: "🇲🇽",
+          name: "Brasil",
+          short_name: "BRA",
+          fifa_code: "BRA",
+          flag_emoji: "🇧🇷",
           group_letter: "A",
           seed: 1
         }
@@ -27,11 +27,10 @@ describe("visual official data adapter", () => {
     expect(groups).toHaveLength(12);
     expect(groups[0]?.letter).toBe("A");
     expect(groups[0]?.teams[0]).toMatchObject({
-      id: "MEX",
-      name: "México",
-      shortName: "MEX",
-      flag: "🇲🇽",
-      countryCode: "mx"
+      id: "team-a1",
+      name: "Brasil",
+      shortName: "BRA",
+      flag: "🇧🇷"
     });
   });
 

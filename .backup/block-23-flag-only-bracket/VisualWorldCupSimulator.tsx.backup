@@ -46,9 +46,9 @@ const roundLabels: Record<VisualBracketRoundKey, string> = {
 
 const roundGapClasses: Record<"round32" | "round16" | "quarterFinals" | "semiFinals", string> = {
   round32: "gap-3",
-  round16: "gap-9 pt-8",
-  quarterFinals: "gap-24 pt-22",
-  semiFinals: "gap-52 pt-44"
+  round16: "gap-8 pt-8",
+  quarterFinals: "gap-20 pt-20",
+  semiFinals: "gap-44 pt-40"
 };
 
 function shuffleTeams(teams: VisualDemoTeam[]): VisualDemoTeam[] {
@@ -178,64 +178,76 @@ function GroupCard({
   );
 }
 
-function BracketFlagButton({
+function BracketTeamButton({
   team,
   selected,
   disabled,
-  onClick
+  onClick,
+  side,
+  compact = false
 }: {
   team: VisualDemoTeam | null;
   selected: boolean;
   disabled: boolean;
   onClick: () => void;
+  side: "left" | "right";
+  compact?: boolean;
 }) {
   return (
     <button
-      aria-label={team ? `Selecionar ${team.name}` : "Seleção indefinida"}
-      className={`group relative grid size-10 place-items-center rounded-full border-2 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.10)] transition ${
+      className={`group flex w-full items-center justify-between gap-2 rounded-full border px-2 py-1.5 text-left transition ${
         selected
-          ? "border-[#06a641] ring-4 ring-[#06a641]/15"
-          : "border-slate-200 hover:border-[#06a641]/70 hover:ring-4 hover:ring-[#06a641]/10"
-      } ${disabled ? "cursor-not-allowed opacity-35" : "cursor-pointer"}`}
+          ? "border-[#06a641] bg-[#06a641] text-white shadow-[0_10px_24px_rgba(6,166,65,0.22)]"
+          : "border-slate-200 bg-white text-slate-700 shadow-sm hover:border-[#06a641]/60 hover:bg-[#06a641]/5"
+      } ${disabled ? "cursor-not-allowed opacity-45" : "cursor-pointer"} ${
+        side === "right" ? "flex-row-reverse text-right" : ""
+      }`}
       disabled={disabled}
       onClick={onClick}
-      title={team?.name ?? "A definir"}
       type="button"
     >
-      {team ? (
-        <TeamFlag
-          className="h-6 w-8 rounded-full border-0 shadow-none"
-          team={team}
-        />
-      ) : (
-        <span className="size-6 rounded-full bg-slate-100" />
-      )}
-
-      {selected ? (
-        <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#06a641] text-[10px] font-black text-white shadow-sm">
-          ✓
+      <span className={`flex min-w-0 items-center gap-2 ${side === "right" ? "flex-row-reverse" : ""}`}>
+        {team ? (
+          <TeamFlag team={team} />
+        ) : (
+          <span className="grid h-4 w-6 shrink-0 place-items-center rounded-full border border-slate-200 bg-slate-50" />
+        )}
+        <span className={`min-w-0 truncate font-bold ${compact ? "max-w-[68px] text-[10px]" : "max-w-[90px] text-[11px]"}`}>
+          {team?.name ?? "A definir"}
         </span>
-      ) : null}
+      </span>
+
+      <span
+        className={`grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-black ${
+          selected ? "bg-white text-[#06a641]" : "bg-slate-100 text-[#06a641]"
+        }`}
+      >
+        {selected ? "✓" : "›"}
+      </span>
     </button>
   );
 }
 
 function MatchupLabel({ match }: { match: VisualBracketMatch }) {
   return (
-    <span className="inline-flex max-w-[58px] items-center justify-center truncate rounded-full bg-slate-100 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.04em] text-slate-400">
-      J{match.matchNumber} · {match.homeToken}×{match.awayToken}
+    <span className="inline-flex max-w-full items-center justify-center rounded-full bg-slate-100 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-slate-400">
+      Jogo {match.matchNumber} · {match.homeToken} × {match.awayToken}
     </span>
   );
 }
 
 function BracketMatchCard({
   match,
+  side,
   pickedTeamId,
-  onPick
+  onPick,
+  compact = false
 }: {
   match: VisualBracketMatch;
+  side: "left" | "right";
   pickedTeamId?: string;
   onPick: (matchId: string, teamId: string) => void;
+  compact?: boolean;
 }) {
   const selectedTeam =
     pickedTeamId === match.homeTeam?.id
@@ -245,29 +257,41 @@ function BracketMatchCard({
         : null;
 
   return (
-    <article className="relative flex w-[68px] flex-col items-center rounded-[24px] border border-slate-200 bg-white/95 px-1.5 py-2 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
-      <MatchupLabel match={match} />
+    <article
+      className={`relative rounded-[22px] border border-slate-200 bg-white/95 p-2 shadow-[0_12px_34px_rgba(15,23,42,0.08)] backdrop-blur ${
+        compact ? "w-[132px]" : "w-[156px]"
+      }`}
+    >
+      <div className={`mb-1.5 flex ${side === "right" ? "justify-end" : "justify-start"}`}>
+        <MatchupLabel match={match} />
+      </div>
 
-      <div className="mt-1.5 flex flex-col items-center gap-1.5">
-        <BracketFlagButton
+      <div className="space-y-1.5">
+        <BracketTeamButton
+          compact={compact}
           disabled={!match.homeTeam}
           onClick={() => match.homeTeam && onPick(match.id, match.homeTeam.id)}
           selected={pickedTeamId === match.homeTeam?.id}
+          side={side}
           team={match.homeTeam}
         />
-        <BracketFlagButton
+        <BracketTeamButton
+          compact={compact}
           disabled={!match.awayTeam}
           onClick={() => match.awayTeam && onPick(match.id, match.awayTeam.id)}
           selected={pickedTeamId === match.awayTeam?.id}
+          side={side}
           team={match.awayTeam}
         />
       </div>
 
-      <span className={`mt-1 text-[7px] font-black uppercase tracking-[0.06em] ${
-        selectedTeam ? "text-[#06a641]" : "text-slate-300"
-      }`}>
-        {selectedTeam ? "OK" : "Clique"}
-      </span>
+      <p
+        className={`mt-1.5 truncate text-[9px] font-black uppercase tracking-[0.08em] ${
+          selectedTeam ? "text-[#06a641]" : "text-slate-300"
+        } ${side === "right" ? "text-right" : "text-left"}`}
+      >
+        {selectedTeam ? selectedTeam.name : "Clique"}
+      </p>
     </article>
   );
 }
@@ -285,6 +309,8 @@ function RoundColumn({
   bracketPicks: VisualBracketPicks;
   onPick: (matchId: string, teamId: string) => void;
 }) {
+  const compact = roundKey !== "round32";
+
   return (
     <div
       className={`relative flex min-h-[650px] flex-col ${roundGapClasses[roundKey]} ${
@@ -293,10 +319,12 @@ function RoundColumn({
     >
       {matches.map((match) => (
         <BracketMatchCard
+          compact={compact}
           key={match.id}
           match={match}
           onPick={onPick}
           pickedTeamId={bracketPicks[match.id]}
+          side={side}
         />
       ))}
     </div>
@@ -305,23 +333,23 @@ function RoundColumn({
 
 function BracketLines() {
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-50">
-      <div className="absolute left-[9%] top-[12%] h-[76%] border-l border-dashed border-slate-200" />
-      <div className="absolute left-[20%] top-[18%] h-[64%] border-l border-dashed border-slate-200" />
-      <div className="absolute left-[31%] top-[28%] h-[44%] border-l border-dashed border-slate-200" />
-      <div className="absolute left-[42%] top-[40%] h-[20%] border-l border-dashed border-slate-200" />
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-55">
+      <div className="absolute left-[10%] top-[12%] h-[76%] border-l border-dashed border-slate-200" />
+      <div className="absolute left-[22%] top-[18%] h-[64%] border-l border-dashed border-slate-200" />
+      <div className="absolute left-[34%] top-[27%] h-[46%] border-l border-dashed border-slate-200" />
+      <div className="absolute left-[45%] top-[39%] h-[22%] border-l border-dashed border-slate-200" />
 
-      <div className="absolute right-[9%] top-[12%] h-[76%] border-l border-dashed border-slate-200" />
-      <div className="absolute right-[20%] top-[18%] h-[64%] border-l border-dashed border-slate-200" />
-      <div className="absolute right-[31%] top-[28%] h-[44%] border-l border-dashed border-slate-200" />
-      <div className="absolute right-[42%] top-[40%] h-[20%] border-l border-dashed border-slate-200" />
+      <div className="absolute right-[10%] top-[12%] h-[76%] border-l border-dashed border-slate-200" />
+      <div className="absolute right-[22%] top-[18%] h-[64%] border-l border-dashed border-slate-200" />
+      <div className="absolute right-[34%] top-[27%] h-[46%] border-l border-dashed border-slate-200" />
+      <div className="absolute right-[45%] top-[39%] h-[22%] border-l border-dashed border-slate-200" />
 
-      <div className="absolute left-[8%] right-[8%] top-1/2 border-t border-dashed border-slate-200" />
+      <div className="absolute left-[9%] right-[9%] top-1/2 border-t border-dashed border-slate-200" />
     </div>
   );
 }
 
-function FinalFlagButton({
+function FinalTeamButton({
   team,
   selected,
   onClick
@@ -332,31 +360,17 @@ function FinalFlagButton({
 }) {
   return (
     <button
-      aria-label={team ? `Selecionar ${team.name} como campeã` : "Finalista indefinido"}
-      className={`relative grid size-12 place-items-center rounded-full border-2 bg-white shadow-[0_14px_30px_rgba(15,23,42,0.12)] transition ${
+      className={`flex w-full items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs font-black transition ${
         selected
-          ? "border-[#06a641] ring-4 ring-[#06a641]/15"
-          : "border-slate-200 hover:border-[#06a641]"
-      } ${!team ? "cursor-not-allowed opacity-35" : ""}`}
+          ? "border-[#06a641] bg-[#06a641] text-white shadow-[0_14px_30px_rgba(6,166,65,0.24)]"
+          : "border-slate-200 bg-white text-slate-500 hover:border-[#06a641] hover:text-[#047a31]"
+      }`}
       disabled={!team}
       onClick={onClick}
-      title={team?.name ?? "A definir"}
       type="button"
     >
-      {team ? (
-        <TeamFlag
-          className="h-7 w-9 rounded-full border-0 shadow-none"
-          team={team}
-        />
-      ) : (
-        <span className="size-7 rounded-full bg-slate-100" />
-      )}
-
-      {selected ? (
-        <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#06a641] text-[10px] font-black text-white shadow-sm">
-          ✓
-        </span>
-      ) : null}
+      {team ? <TeamFlag team={team} /> : null}
+      <span className="truncate">{team?.name ?? "A definir"}</span>
     </button>
   );
 }
@@ -391,7 +405,7 @@ function InteractiveBracket({
           </p>
           <h2 className="mt-1 text-3xl font-black text-slate-900">Espião</h2>
           <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
-            Clique nas bandeiras para escolher os vencedores de cada confronto.
+            Clique nos vencedores de cada confronto para avançar os times até a final.
           </p>
         </div>
 
@@ -401,10 +415,10 @@ function InteractiveBracket({
       </div>
 
       <div className="-mx-4 overflow-x-auto px-4 pb-4">
-        <div className="relative mx-auto min-h-[740px] w-[920px] rounded-[30px] bg-white/60 px-5 py-8">
+        <div className="relative mx-auto min-h-[740px] w-[1120px] rounded-[30px] bg-white/60 px-4 py-8">
           <BracketLines />
 
-          <div className="absolute inset-x-5 inset-y-8 grid grid-cols-[1fr_150px_1fr] gap-4">
+          <div className="absolute inset-x-4 inset-y-8 grid grid-cols-[1fr_180px_1fr] gap-5">
             <div className="grid grid-cols-4 gap-3">
               <RoundColumn
                 bracketPicks={bracketPicks}
@@ -441,23 +455,23 @@ function InteractiveBracket({
                 Final
               </span>
 
-              <div className="grid size-24 place-items-center rounded-full border border-slate-200 bg-white text-4xl shadow-[0_16px_44px_rgba(15,23,42,0.08)]">
+              <div className="grid size-28 place-items-center rounded-full border border-slate-200 bg-white text-5xl shadow-[0_16px_44px_rgba(15,23,42,0.08)]">
                 🏆
               </div>
 
-              <div className="mt-4 rounded-full bg-[#06a641] px-5 py-2 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_14px_30px_rgba(6,166,65,0.22)]">
+              <div className="mt-4 rounded-full bg-[#06a641] px-5 py-2 text-center text-xs font-black uppercase tracking-[0.16em] text-white shadow-[0_14px_30px_rgba(6,166,65,0.22)]">
                 Campeã
               </div>
 
-              <div className="mt-4 flex items-center justify-center gap-3">
+              <div className="mt-4 flex w-full flex-col gap-2">
                 {finalMatch ? (
                   <>
-                    <FinalFlagButton
+                    <FinalTeamButton
                       onClick={() => finalMatch.homeTeam && onPick(finalMatch.id, finalMatch.homeTeam.id)}
                       selected={bracketPicks[finalMatch.id] === finalMatch.homeTeam?.id}
                       team={finalMatch.homeTeam}
                     />
-                    <FinalFlagButton
+                    <FinalTeamButton
                       onClick={() => finalMatch.awayTeam && onPick(finalMatch.id, finalMatch.awayTeam.id)}
                       selected={bracketPicks[finalMatch.id] === finalMatch.awayTeam?.id}
                       team={finalMatch.awayTeam}
@@ -466,8 +480,8 @@ function InteractiveBracket({
                 ) : null}
               </div>
 
-              <p className="mt-4 max-w-[145px] truncate text-center text-xs font-black text-slate-800">
-                {champion ? champion.name : "A definir"}
+              <p className="mt-4 max-w-[170px] text-center text-sm font-black text-slate-800">
+                {champion ? `${champion.flag} ${champion.name}` : "A definir"}
               </p>
             </div>
 

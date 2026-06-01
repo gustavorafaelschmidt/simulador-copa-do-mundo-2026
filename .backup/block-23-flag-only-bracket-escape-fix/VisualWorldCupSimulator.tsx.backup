@@ -191,12 +191,12 @@ function BracketFlagButton({
 }) {
   return (
     <button
-      aria-label={team ? `Selecionar ${team.name}` : "Seleção indefinida"}
-      className={`group relative grid size-10 place-items-center rounded-full border-2 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.10)] transition ${
+      aria-label={team ? \`Selecionar \${team.name}\` : "Seleção indefinida"}
+      className={\`group relative grid size-10 place-items-center rounded-full border-2 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.10)] transition \${
         selected
           ? "border-[#06a641] ring-4 ring-[#06a641]/15"
           : "border-slate-200 hover:border-[#06a641]/70 hover:ring-4 hover:ring-[#06a641]/10"
-      } ${disabled ? "cursor-not-allowed opacity-35" : "cursor-pointer"}`}
+      } \${disabled ? "cursor-not-allowed opacity-35" : "cursor-pointer"}\`}
       disabled={disabled}
       onClick={onClick}
       title={team?.name ?? "A definir"}
@@ -230,10 +230,12 @@ function MatchupLabel({ match }: { match: VisualBracketMatch }) {
 
 function BracketMatchCard({
   match,
+  side,
   pickedTeamId,
   onPick
 }: {
   match: VisualBracketMatch;
+  side: "left" | "right";
   pickedTeamId?: string;
   onPick: (matchId: string, teamId: string) => void;
 }) {
@@ -263,9 +265,9 @@ function BracketMatchCard({
         />
       </div>
 
-      <span className={`mt-1 text-[7px] font-black uppercase tracking-[0.06em] ${
+      <span className={\`mt-1 text-[7px] font-black uppercase tracking-[0.06em] \${
         selectedTeam ? "text-[#06a641]" : "text-slate-300"
-      }`}>
+      }\`}>
         {selectedTeam ? "OK" : "Clique"}
       </span>
     </article>
@@ -287,9 +289,9 @@ function RoundColumn({
 }) {
   return (
     <div
-      className={`relative flex min-h-[650px] flex-col ${roundGapClasses[roundKey]} ${
+      className={\`relative flex min-h-[650px] flex-col \${roundGapClasses[roundKey]} \${
         side === "right" ? "items-end" : "items-start"
-      }`}
+      }\`}
     >
       {matches.map((match) => (
         <BracketMatchCard
@@ -297,6 +299,7 @@ function RoundColumn({
           match={match}
           onPick={onPick}
           pickedTeamId={bracketPicks[match.id]}
+          side={side}
         />
       ))}
     </div>
@@ -332,12 +335,12 @@ function FinalFlagButton({
 }) {
   return (
     <button
-      aria-label={team ? `Selecionar ${team.name} como campeã` : "Finalista indefinido"}
-      className={`relative grid size-12 place-items-center rounded-full border-2 bg-white shadow-[0_14px_30px_rgba(15,23,42,0.12)] transition ${
+      aria-label={team ? \`Selecionar \${team.name} como campeã\` : "Finalista indefinido"}
+      className={\`relative grid size-12 place-items-center rounded-full border-2 bg-white shadow-[0_14px_30px_rgba(15,23,42,0.12)] transition \${
         selected
           ? "border-[#06a641] ring-4 ring-[#06a641]/15"
           : "border-slate-200 hover:border-[#06a641]"
-      } ${!team ? "cursor-not-allowed opacity-35" : ""}`}
+      } \${!team ? "cursor-not-allowed opacity-35" : ""}\`}
       disabled={!team}
       onClick={onClick}
       title={team?.name ?? "A definir"}

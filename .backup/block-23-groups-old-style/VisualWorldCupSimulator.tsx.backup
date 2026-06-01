@@ -46,8 +46,8 @@ const roundLabels: Record<VisualBracketRoundKey, string> = {
 
 const roundGapClasses: Record<"round32" | "round16" | "quarterFinals" | "semiFinals", string> = {
   round32: "gap-3",
-  round16: "gap-9 pt-8",
-  quarterFinals: "gap-24 pt-22",
+  round16: "gap-10 pt-7",
+  quarterFinals: "gap-24 pt-20",
   semiFinals: "gap-52 pt-44"
 };
 
@@ -55,17 +55,19 @@ function shuffleTeams(teams: VisualDemoTeam[]): VisualDemoTeam[] {
   return [...teams].sort(() => Math.random() - 0.5);
 }
 
-function TeamFlag({ team, className = "" }: { team: VisualDemoTeam; className?: string }) {
+function TeamFlag({ team, size = "sm" }: { team: VisualDemoTeam; size?: "sm" | "lg" }) {
   const flagStyle = team.flagImageUrl
     ? {
         backgroundImage: `url("${team.flagImageUrl}")`
       }
     : undefined;
 
+  const sizeClass = size === "lg" ? "size-12 text-xl" : "h-4 w-6 text-xs";
+
   return (
     <span
       aria-hidden="true"
-      className={`inline-grid h-4 w-6 shrink-0 place-items-center overflow-hidden border border-slate-200 bg-white bg-cover bg-center bg-no-repeat text-xs shadow-sm ${className}`}
+      className={`${sizeClass} inline-grid shrink-0 place-items-center overflow-hidden border border-slate-200 bg-white bg-cover bg-center bg-no-repeat shadow-sm`}
       style={flagStyle}
     >
       {team.flagImageUrl ? null : team.flag}
@@ -76,22 +78,48 @@ function TeamFlag({ team, className = "" }: { team: VisualDemoTeam; className?: 
 function TeamIdentity({ team }: { team: VisualDemoTeam }) {
   return (
     <span className="flex min-w-0 items-center gap-2">
-      <span
-        aria-hidden="true"
-        className={`grid size-8 shrink-0 place-items-center overflow-hidden rounded-full border border-white/70 bg-white text-lg shadow-sm ${
-          team.flagImageUrl ? "bg-cover bg-center bg-no-repeat" : ""
-        }`}
-        style={team.flagImageUrl ? { backgroundImage: `url("${team.flagImageUrl}")` } : undefined}
-      >
-        {team.flagImageUrl ? null : team.flag}
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate font-semibold text-slate-900">{team.name}</span>
-        <span className="block text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">
-          {team.shortName}
-        </span>
-      </span>
+      <TeamFlag team={team} />
+      <span className="min-w-0 truncate text-[13px] font-medium text-black">{team.name}</span>
     </span>
+  );
+}
+
+function BracketTeamCircle({
+  team,
+  selected,
+  disabled,
+  onClick,
+  side
+}: {
+  team: VisualDemoTeam | null;
+  selected: boolean;
+  disabled: boolean;
+  onClick: () => void;
+  side: "left" | "right";
+}) {
+  return (
+    <button
+      className={`group flex items-center gap-2 ${side === "right" ? "flex-row-reverse text-right" : ""} ${
+        disabled ? "cursor-not-allowed opacity-45" : "cursor-pointer"
+      }`}
+      disabled={disabled}
+      onClick={onClick}
+      type="button"
+    >
+      <span
+        className={`grid size-11 place-items-center overflow-hidden rounded-full border-2 bg-[#f6f6f6] bg-cover bg-center bg-no-repeat text-lg shadow-sm transition ${
+          selected
+            ? "border-[#06a641] ring-4 ring-[#06a641]/15"
+            : "border-[#d0d0d0] group-hover:border-[#06a641]"
+        }`}
+        style={team?.flagImageUrl ? { backgroundImage: `url("${team.flagImageUrl}")` } : undefined}
+      >
+        {team?.flagImageUrl ? null : (team?.flag ?? "")}
+      </span>
+      <span className="hidden max-w-[92px] truncate text-[11px] font-semibold text-slate-600 xl:block">
+        {team?.name ?? "A definir"}
+      </span>
+    </button>
   );
 }
 
@@ -107,34 +135,26 @@ function GroupCard({
   onRandomize: () => void;
 }) {
   return (
-    <article className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.09)]">
-      <header className="flex items-center justify-between bg-[#f4f6f8] px-4 py-3">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#06a641]">
-            Fase de grupos
-          </p>
-          <h3 className="text-xl font-black text-slate-950">{group.name}</h3>
-        </div>
-        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 shadow-sm">
-          4 seleções
-        </span>
-      </header>
+    <article className="bg-white">
+      <h3 className="border-b border-black pb-2 text-center text-base font-black text-black">
+        {group.name}
+      </h3>
 
-      <div className="grid grid-cols-[1fr_44px_44px_44px] items-center border-b border-slate-100 px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+      <div className="grid grid-cols-[1fr_34px_34px_34px] items-center px-2 py-4 text-[10px] text-slate-500">
         <span>Seleção</span>
-        <span className="text-center">1º</span>
-        <span className="text-center">2º</span>
-        <span className="text-center">3º</span>
+        <span className="text-center font-bold">1º</span>
+        <span className="text-center font-bold">2º</span>
+        <span className="text-center font-bold">3º</span>
       </div>
 
-      <div className="divide-y divide-slate-100">
-        {group.teams.map((team) => {
+      <div>
+        {group.teams.map((team, rowIndex) => {
           const selectedPosition = positionConfig.find(([key]) => pick[key] === team.id)?.[0];
 
           return (
             <div
-              className={`grid grid-cols-[1fr_44px_44px_44px] items-center gap-1 px-4 py-3 transition ${
-                selectedPosition ? "bg-emerald-50/70" : "bg-white"
+              className={`grid min-h-9 grid-cols-[1fr_34px_34px_34px] items-center px-2 ${
+                rowIndex % 2 === 0 ? "bg-[#f0f0f0]" : "bg-[#e7e7e7]"
               }`}
               key={team.id}
             >
@@ -146,94 +166,96 @@ function GroupCard({
                 return (
                   <button
                     aria-label={`${team.name} como ${label} colocado do ${group.name}`}
-                    className={`mx-auto grid size-9 place-items-center rounded-full border text-sm font-black transition ${
+                    className={`mx-auto size-5 rounded-full border text-[0px] transition ${
                       selected
-                        ? "border-[#06a641] bg-[#06a641] text-white shadow-[0_8px_22px_rgba(6,166,65,0.3)]"
-                        : "border-slate-200 bg-slate-50 text-slate-400 hover:border-[#06a641] hover:text-[#047a31]"
+                        ? "border-[#06a641] bg-[#06a641] shadow-[inset_0_0_0_3px_white]"
+                        : "border-[#06a641] bg-transparent hover:bg-[#06a641]/10"
                     }`}
                     key={key}
                     onClick={() => onChoose(key, team.id)}
                     title={label}
                     type="button"
                   >
-                    {selected ? "✓" : label}
+                    {label}
                   </button>
                 );
               })}
+
+              {selectedPosition ? (
+                <span className="sr-only">{selectedPosition}</span>
+              ) : null}
             </div>
           );
         })}
       </div>
 
-      <footer className="border-t border-slate-100 bg-slate-50/80 px-4 py-3">
-        <button
-          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black uppercase text-slate-700 transition hover:border-[#06a641] hover:text-[#047a31]"
-          onClick={onRandomize}
-          type="button"
-        >
-          Sorteio aleatório
-        </button>
-      </footer>
-    </article>
-  );
-}
-
-function BracketFlagButton({
-  team,
-  selected,
-  disabled,
-  onClick
-}: {
-  team: VisualDemoTeam | null;
-  selected: boolean;
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      aria-label={team ? `Selecionar ${team.name}` : "Seleção indefinida"}
-      className={`group relative grid size-10 place-items-center rounded-full border-2 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.10)] transition ${
-        selected
-          ? "border-[#06a641] ring-4 ring-[#06a641]/15"
-          : "border-slate-200 hover:border-[#06a641]/70 hover:ring-4 hover:ring-[#06a641]/10"
-      } ${disabled ? "cursor-not-allowed opacity-35" : "cursor-pointer"}`}
-      disabled={disabled}
-      onClick={onClick}
-      title={team?.name ?? "A definir"}
-      type="button"
-    >
-      {team ? (
-        <TeamFlag
-          className="h-6 w-8 rounded-full border-0 shadow-none"
-          team={team}
-        />
-      ) : (
-        <span className="size-6 rounded-full bg-slate-100" />
-      )}
-
-      {selected ? (
-        <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#06a641] text-[10px] font-black text-white shadow-sm">
-          ✓
+      <button
+        className="mt-2 flex h-10 w-full items-center justify-center gap-3 bg-[#06a641] px-4 text-xs font-medium uppercase text-white transition hover:bg-[#038d35]"
+        onClick={onRandomize}
+        type="button"
+      >
+        <span aria-hidden="true" className="text-xl leading-none">
+          ↗
         </span>
-      ) : null}
-    </button>
+        Sorteio aleatório
+      </button>
+    </article>
   );
 }
 
 function MatchupLabel({ match }: { match: VisualBracketMatch }) {
   return (
-    <span className="inline-flex max-w-[58px] items-center justify-center truncate rounded-full bg-slate-100 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.04em] text-slate-400">
-      J{match.matchNumber} · {match.homeToken}×{match.awayToken}
+    <span className="rounded-full bg-white/90 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-slate-500 shadow-sm">
+      Jogo {match.matchNumber} | {match.homeToken} × {match.awayToken}
     </span>
   );
 }
 
-function BracketMatchCard({
+function BracketMatchNode({
   match,
+  side,
   pickedTeamId,
   onPick
 }: {
   match: VisualBracketMatch;
+  side: "left" | "right";
+  pickedTeamId?: string;
+  onPick: (matchId: string, teamId: string) => void;
+}) {
+  return (
+    <div className={`relative flex flex-col items-center ${side === "right" ? "items-end" : "items-start"}`}>
+      <div className="mb-1">
+        <MatchupLabel match={match} />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <BracketTeamCircle
+          disabled={!match.homeTeam}
+          onClick={() => match.homeTeam && onPick(match.id, match.homeTeam.id)}
+          selected={pickedTeamId === match.homeTeam?.id}
+          side={side}
+          team={match.homeTeam}
+        />
+        <BracketTeamCircle
+          disabled={!match.awayTeam}
+          onClick={() => match.awayTeam && onPick(match.id, match.awayTeam.id)}
+          selected={pickedTeamId === match.awayTeam?.id}
+          side={side}
+          team={match.awayTeam}
+        />
+      </div>
+    </div>
+  );
+}
+
+function WinnerNode({
+  match,
+  side,
+  pickedTeamId,
+  onPick
+}: {
+  match: VisualBracketMatch;
+  side: "left" | "right";
   pickedTeamId?: string;
   onPick: (matchId: string, teamId: string) => void;
 }) {
@@ -245,30 +267,30 @@ function BracketMatchCard({
         : null;
 
   return (
-    <article className="relative flex w-[68px] flex-col items-center rounded-[24px] border border-slate-200 bg-white/95 px-1.5 py-2 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
+    <div className={`relative flex flex-col items-center gap-1 ${side === "right" ? "items-end" : "items-start"}`}>
       <MatchupLabel match={match} />
 
-      <div className="mt-1.5 flex flex-col items-center gap-1.5">
-        <BracketFlagButton
+      <div className={`flex gap-2 ${side === "right" ? "flex-row-reverse" : ""}`}>
+        <BracketTeamCircle
           disabled={!match.homeTeam}
           onClick={() => match.homeTeam && onPick(match.id, match.homeTeam.id)}
           selected={pickedTeamId === match.homeTeam?.id}
+          side={side}
           team={match.homeTeam}
         />
-        <BracketFlagButton
+        <BracketTeamCircle
           disabled={!match.awayTeam}
           onClick={() => match.awayTeam && onPick(match.id, match.awayTeam.id)}
           selected={pickedTeamId === match.awayTeam?.id}
+          side={side}
           team={match.awayTeam}
         />
       </div>
 
-      <span className={`mt-1 text-[7px] font-black uppercase tracking-[0.06em] ${
-        selectedTeam ? "text-[#06a641]" : "text-slate-300"
-      }`}>
-        {selectedTeam ? "OK" : "Clique"}
+      <span className="hidden max-w-[120px] truncate text-[10px] font-black uppercase text-[#06a641] xl:block">
+        {selectedTeam?.name ?? "Clique"}
       </span>
-    </article>
+    </div>
   );
 }
 
@@ -285,79 +307,48 @@ function RoundColumn({
   bracketPicks: VisualBracketPicks;
   onPick: (matchId: string, teamId: string) => void;
 }) {
+  const isRound32 = roundKey === "round32";
+
   return (
-    <div
-      className={`relative flex min-h-[650px] flex-col ${roundGapClasses[roundKey]} ${
-        side === "right" ? "items-end" : "items-start"
-      }`}
-    >
-      {matches.map((match) => (
-        <BracketMatchCard
-          key={match.id}
-          match={match}
-          onPick={onPick}
-          pickedTeamId={bracketPicks[match.id]}
-        />
-      ))}
+    <div className={`relative flex min-h-[710px] flex-col ${roundGapClasses[roundKey]}`}>
+      {matches.map((match) =>
+        isRound32 ? (
+          <BracketMatchNode
+            key={match.id}
+            match={match}
+            onPick={onPick}
+            pickedTeamId={bracketPicks[match.id]}
+            side={side}
+          />
+        ) : (
+          <WinnerNode
+            key={match.id}
+            match={match}
+            onPick={onPick}
+            pickedTeamId={bracketPicks[match.id]}
+            side={side}
+          />
+        )
+      )}
     </div>
   );
 }
 
 function BracketLines() {
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-50">
-      <div className="absolute left-[9%] top-[12%] h-[76%] border-l border-dashed border-slate-200" />
-      <div className="absolute left-[20%] top-[18%] h-[64%] border-l border-dashed border-slate-200" />
-      <div className="absolute left-[31%] top-[28%] h-[44%] border-l border-dashed border-slate-200" />
-      <div className="absolute left-[42%] top-[40%] h-[20%] border-l border-dashed border-slate-200" />
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-70">
+      <div className="absolute left-[7%] top-[11%] h-[78%] border-l border-dotted border-slate-300" />
+      <div className="absolute left-[19%] top-[17%] h-[66%] border-l border-dotted border-slate-300" />
+      <div className="absolute left-[31%] top-[26%] h-[48%] border-l border-dotted border-slate-300" />
+      <div className="absolute left-[43%] top-[38%] h-[24%] border-l border-dotted border-slate-300" />
 
-      <div className="absolute right-[9%] top-[12%] h-[76%] border-l border-dashed border-slate-200" />
-      <div className="absolute right-[20%] top-[18%] h-[64%] border-l border-dashed border-slate-200" />
-      <div className="absolute right-[31%] top-[28%] h-[44%] border-l border-dashed border-slate-200" />
-      <div className="absolute right-[42%] top-[40%] h-[20%] border-l border-dashed border-slate-200" />
+      <div className="absolute right-[7%] top-[11%] h-[78%] border-l border-dotted border-slate-300" />
+      <div className="absolute right-[19%] top-[17%] h-[66%] border-l border-dotted border-slate-300" />
+      <div className="absolute right-[31%] top-[26%] h-[48%] border-l border-dotted border-slate-300" />
+      <div className="absolute right-[43%] top-[38%] h-[24%] border-l border-dotted border-slate-300" />
 
-      <div className="absolute left-[8%] right-[8%] top-1/2 border-t border-dashed border-slate-200" />
+      <div className="absolute left-[7%] right-[7%] top-[50%] border-t border-dotted border-slate-300" />
     </div>
-  );
-}
-
-function FinalFlagButton({
-  team,
-  selected,
-  onClick
-}: {
-  team: VisualDemoTeam | null;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      aria-label={team ? `Selecionar ${team.name} como campeã` : "Finalista indefinido"}
-      className={`relative grid size-12 place-items-center rounded-full border-2 bg-white shadow-[0_14px_30px_rgba(15,23,42,0.12)] transition ${
-        selected
-          ? "border-[#06a641] ring-4 ring-[#06a641]/15"
-          : "border-slate-200 hover:border-[#06a641]"
-      } ${!team ? "cursor-not-allowed opacity-35" : ""}`}
-      disabled={!team}
-      onClick={onClick}
-      title={team?.name ?? "A definir"}
-      type="button"
-    >
-      {team ? (
-        <TeamFlag
-          className="h-7 w-9 rounded-full border-0 shadow-none"
-          team={team}
-        />
-      ) : (
-        <span className="size-7 rounded-full bg-slate-100" />
-      )}
-
-      {selected ? (
-        <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#06a641] text-[10px] font-black text-white shadow-sm">
-          ✓
-        </span>
-      ) : null}
-    </button>
   );
 }
 
@@ -383,29 +374,25 @@ function InteractiveBracket({
   const finalMatch = rounds.final[0];
 
   return (
-    <section className="rounded-[34px] border border-slate-200 bg-gradient-to-b from-white to-slate-50 px-4 py-8 shadow-[0_22px_70px_rgba(15,23,42,0.08)]">
-      <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#06a641]">
-            Mata-mata
-          </p>
-          <h2 className="mt-1 text-3xl font-black text-slate-900">Espião</h2>
-          <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
-            Clique nas bandeiras para escolher os vencedores de cada confronto.
-          </p>
-        </div>
+    <section className="bg-white pt-10">
+      <h2 className="mb-10 text-3xl font-bold text-slate-800">Espião</h2>
 
-        <div className="rounded-full bg-[#06a641]/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#047a31]">
-          Layout espelhado
-        </div>
+      <div className="mb-8 text-center">
+        <p className="text-[13px] font-black italic leading-8 text-[#06a641]">
+          Clique nos vencedores
+          <br />
+          de cada confronto, para fazer
+          <br />
+          sua simulação.
+        </p>
       </div>
 
-      <div className="-mx-4 overflow-x-auto px-4 pb-4">
-        <div className="relative mx-auto min-h-[740px] w-[920px] rounded-[30px] bg-white/60 px-5 py-8">
+      <div className="-mx-4 overflow-x-auto px-4 pb-8">
+        <div className="relative mx-auto min-h-[850px] w-[1240px]">
           <BracketLines />
 
-          <div className="absolute inset-x-5 inset-y-8 grid grid-cols-[1fr_150px_1fr] gap-4">
-            <div className="grid grid-cols-4 gap-3">
+          <div className="absolute inset-0 grid grid-cols-[1fr_170px_1fr] gap-6">
+            <div className="grid grid-cols-4 gap-4">
               <RoundColumn
                 bracketPicks={bracketPicks}
                 matches={leftRound32}
@@ -436,42 +423,46 @@ function InteractiveBracket({
               />
             </div>
 
-            <div className="flex flex-col items-center justify-center">
-              <span className="mb-3 text-[10px] font-black uppercase tracking-[0.26em] text-slate-400">
-                Final
+            <div className="flex flex-col items-center justify-center pt-12">
+              <span className="mb-6 text-xs font-black uppercase tracking-[0.22em] text-slate-400">
+                {roundLabels.final}
               </span>
 
-              <div className="grid size-24 place-items-center rounded-full border border-slate-200 bg-white text-4xl shadow-[0_16px_44px_rgba(15,23,42,0.08)]">
+              <div className="grid size-28 place-items-center rounded-full border-2 border-slate-300 bg-slate-50 text-5xl text-slate-300">
                 🏆
               </div>
 
-              <div className="mt-4 rounded-full bg-[#06a641] px-5 py-2 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_14px_30px_rgba(6,166,65,0.22)]">
+              <div className="mt-6 rounded-full bg-[#06a641] px-5 py-2 text-center text-xs font-black uppercase tracking-[0.16em] text-white">
                 Campeã
               </div>
 
-              <div className="mt-4 flex items-center justify-center gap-3">
+              <div className="mt-4 flex flex-col items-center gap-3">
                 {finalMatch ? (
                   <>
-                    <FinalFlagButton
+                    <BracketTeamCircle
+                      disabled={!finalMatch.homeTeam}
                       onClick={() => finalMatch.homeTeam && onPick(finalMatch.id, finalMatch.homeTeam.id)}
                       selected={bracketPicks[finalMatch.id] === finalMatch.homeTeam?.id}
+                      side="left"
                       team={finalMatch.homeTeam}
                     />
-                    <FinalFlagButton
+                    <BracketTeamCircle
+                      disabled={!finalMatch.awayTeam}
                       onClick={() => finalMatch.awayTeam && onPick(finalMatch.id, finalMatch.awayTeam.id)}
                       selected={bracketPicks[finalMatch.id] === finalMatch.awayTeam?.id}
+                      side="left"
                       team={finalMatch.awayTeam}
                     />
                   </>
                 ) : null}
               </div>
 
-              <p className="mt-4 max-w-[145px] truncate text-center text-xs font-black text-slate-800">
-                {champion ? champion.name : "A definir"}
+              <p className="mt-4 max-w-[150px] text-center text-sm font-black text-slate-700">
+                {champion ? `${champion.flag} ${champion.name}` : "A definir"}
               </p>
             </div>
 
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 gap-4">
               <RoundColumn
                 bracketPicks={bracketPicks}
                 matches={rightSemiFinal}
@@ -505,7 +496,7 @@ function InteractiveBracket({
         </div>
       </div>
 
-      <div className="grid grid-cols-5 gap-2 border-t border-slate-200 pt-4 text-center text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+      <div className="grid grid-cols-5 gap-2 border-t border-slate-200 pt-4 text-center text-xs font-bold text-slate-500">
         <span>{roundLabels.round32}</span>
         <span>{roundLabels.round16}</span>
         <span>{roundLabels.quarterFinals}</span>
@@ -726,7 +717,7 @@ export function VisualWorldCupSimulator({ groups }: VisualWorldCupSimulatorProps
       <section id="grupos" className="bg-white">
         <h2 className="mb-6 text-3xl font-bold text-slate-800">Grupos</h2>
 
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-x-3 gap-y-6 md:grid-cols-2 xl:grid-cols-3">
           {groups.map((group) => (
             <GroupCard
               group={group}
@@ -751,21 +742,21 @@ export function VisualWorldCupSimulator({ groups }: VisualWorldCupSimulatorProps
       <div className="sticky bottom-0 z-30 -mx-4 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur">
         <div className="mx-auto flex max-w-4xl flex-wrap justify-center gap-3">
           <button
-            className="min-w-48 rounded-full bg-[#06a641] px-6 py-3 text-xs font-bold uppercase text-white transition hover:bg-[#038d35]"
+            className="min-w-48 bg-[#06a641] px-6 py-3 text-xs font-bold uppercase text-white transition hover:bg-[#038d35]"
             onClick={randomizeAll}
             type="button"
           >
             Preencher todas as chaves
           </button>
           <button
-            className="min-w-36 rounded-full border border-slate-300 bg-white px-6 py-3 text-xs font-bold uppercase text-slate-700 transition hover:bg-slate-50"
+            className="min-w-36 border border-slate-300 bg-white px-6 py-3 text-xs font-bold uppercase text-slate-700 transition hover:bg-slate-50"
             onClick={reset}
             type="button"
           >
             Reiniciar
           </button>
           <button
-            className="min-w-36 rounded-full border border-slate-300 bg-white px-6 py-3 text-xs font-bold uppercase text-slate-700 transition hover:bg-slate-50"
+            className="min-w-36 border border-slate-300 bg-white px-6 py-3 text-xs font-bold uppercase text-slate-700 transition hover:bg-slate-50"
             onClick={share}
             type="button"
           >

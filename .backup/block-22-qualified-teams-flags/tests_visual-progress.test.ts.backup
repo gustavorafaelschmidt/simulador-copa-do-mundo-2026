@@ -18,19 +18,17 @@ describe("visual progress helpers", () => {
   });
 
   it("deve montar resumo de progresso", () => {
-    const [first, second, third] = visualDemoGroups[0]?.teams ?? [];
-
     const summary = buildVisualProgressSummary({
       groups: visualDemoGroups,
       groupPicks: {
         A: {
-          first: first?.id,
-          second: second?.id,
-          third: third?.id
+          first: "A1",
+          second: "A2",
+          third: "A3"
         }
       },
       bracketPicks: {
-        "round32-0": second?.id ?? "RSA"
+        "round32-0": "A2"
       }
     });
 

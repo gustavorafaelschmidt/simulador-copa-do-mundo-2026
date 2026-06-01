@@ -9,11 +9,11 @@ import {
 
 describe("visual demo helpers", () => {
   it("deve selecionar uma equipe por posição e remover duplicidade", () => {
-    const firstPick = chooseVisualTeam({}, "first", "MEX");
-    const secondPick = chooseVisualTeam(firstPick, "second", "MEX");
+    const firstPick = chooseVisualTeam({}, "first", "A1");
+    const secondPick = chooseVisualTeam(firstPick, "second", "A1");
 
     expect(secondPick).toEqual({
-      second: "MEX"
+      second: "A1"
     });
   });
 
@@ -21,9 +21,9 @@ describe("visual demo helpers", () => {
     expect(
       countCompletedGroups(visualDemoGroups, {
         A: {
-          first: "MEX",
-          second: "RSA",
-          third: "KOR"
+          first: "A1",
+          second: "A2",
+          third: "A3"
         }
       })
     ).toBe(1);
@@ -32,14 +32,14 @@ describe("visual demo helpers", () => {
   it("deve montar classificados visuais", () => {
     const qualified = buildVisualQualifiedTeams(visualDemoGroups, {
       A: {
-        first: "MEX",
-        second: "RSA",
-        third: "KOR"
+        first: "A1",
+        second: "A2",
+        third: "A3"
       }
     });
 
     expect(qualified).toHaveLength(3);
-    expect(qualified[0]?.team.name).toBe("México");
+    expect(qualified[0]?.team.name).toBe("Brasil");
   });
 
   it("deve limitar terceiros demo a oito seleções", () => {
@@ -47,20 +47,13 @@ describe("visual demo helpers", () => {
       visualDemoGroups.map((group) => [
         group.letter,
         {
-          first: group.teams[0]?.id,
-          second: group.teams[1]?.id,
-          third: group.teams[2]?.id
+          first: `${group.letter}1`,
+          second: `${group.letter}2`,
+          third: `${group.letter}3`
         }
       ])
     );
 
     expect(getDemoBestThirdPlacedTeams(visualDemoGroups, picks)).toHaveLength(8);
-  });
-
-  it("não deve conter Itália entre os classificados visuais", () => {
-    const allTeamNames = visualDemoGroups.flatMap((group) => group.teams.map((team) => team.name));
-
-    expect(allTeamNames).not.toContain("Itália");
-    expect(allTeamNames).toHaveLength(48);
   });
 });
