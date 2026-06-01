@@ -1,15 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import type { VisualDemoGroup, VisualDemoTeam } from "../../lib/fifa/visualDemoData.ts";
-import {
-  buildVisualBracketRounds,
-  getVisualChampion,
-  sanitizeVisualBracketPicks,
-  type VisualBracketMatch,
-  type VisualBracketPicks,
-  type VisualBracketRoundKey
-} from "../../lib/fifa/visualBracketHelpers.ts";
 import {
   buildVisualQualifiedTeams,
   chooseVisualTeam,
@@ -23,26 +15,30 @@ type VisualWorldCupSimulatorProps = {
   groups: VisualDemoGroup[];
 };
 
-type PersistedVisualState = {
-  groupPicks: VisualGroupPicks;
-  bracketPicks?: VisualBracketPicks;
-};
-
-const storageKey = "simulador-copa-2026:visual-state:v1";
-
 const positionConfig = [
   ["first", "1º"],
   ["second", "2º"],
   ["third", "3º"]
 ] as const;
 
-const roundLabels: Record<VisualBracketRoundKey, string> = {
-  round32: "16-avos",
-  round16: "Oitavas",
-  quarterFinals: "Quartas",
-  semiFinals: "Semifinais",
-  final: "Final"
-};
+const roundOf32Tokens = [
+  ["2A", "2B"],
+  ["1E", "3º"],
+  ["1F", "2C"],
+  ["1C", "2F"],
+  ["1I", "3º"],
+  ["2E", "2I"],
+  ["1A", "3º"],
+  ["1L", "3º"],
+  ["1D", "3º"],
+  ["1G", "3º"],
+  ["2K", "2L"],
+  ["1H", "2J"],
+  ["1B", "3º"],
+  ["1J", "2H"],
+  ["1K", "3º"],
+  ["2D", "2G"]
+] as const;
 
 function shuffleTeams(teams: VisualDemoTeam[]): VisualDemoTeam[] {
   return [...teams].sort(() => Math.random() - 0.5);
@@ -149,149 +145,7 @@ function GroupCard({
   );
 }
 
-function TeamPickButton({
-  team,
-  selected,
-  disabled,
-  onPick
-}: {
-  team: VisualDemoTeam | null;
-  selected: boolean;
-  disabled: boolean;
-  onPick: () => void;
-}) {
-  return (
-    <button
-      className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition ${
-        selected
-          ? "border-emerald-600 bg-emerald-50 shadow-[0_8px_22px_rgba(5,150,105,0.14)]"
-          : "border-slate-200 bg-white hover:border-emerald-300"
-      } ${disabled ? "cursor-not-allowed opacity-55" : ""}`}
-      disabled={disabled}
-      onClick={onPick}
-      type="button"
-    >
-      {team ? <TeamIdentity team={team} /> : <span className="text-sm font-bold text-slate-400">A definir</span>}
-      <span
-        className={`grid size-7 place-items-center rounded-full text-xs font-black ${
-          selected ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-400"
-        }`}
-      >
-        {selected ? "✓" : "›"}
-      </span>
-    </button>
-  );
-}
-
-function BracketMatchCard({
-  match,
-  pickedTeamId,
-  onPick
-}: {
-  match: VisualBracketMatch;
-  pickedTeamId?: string;
-  onPick: (matchId: string, teamId: string) => void;
-}) {
-  const canPickHome = Boolean(match.homeTeam);
-  const canPickAway = Boolean(match.awayTeam);
-
-  return (
-    <article className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-      <div className="mb-2 flex items-center justify-between">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-          Jogo {match.matchNumber}
-        </p>
-        <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-slate-400">
-          {match.homeToken} × {match.awayToken}
-        </span>
-      </div>
-
-      <div className="space-y-2">
-        <TeamPickButton
-          disabled={!canPickHome}
-          onPick={() => match.homeTeam && onPick(match.id, match.homeTeam.id)}
-          selected={pickedTeamId === match.homeTeam?.id}
-          team={match.homeTeam}
-        />
-        <TeamPickButton
-          disabled={!canPickAway}
-          onPick={() => match.awayTeam && onPick(match.id, match.awayTeam.id)}
-          selected={pickedTeamId === match.awayTeam?.id}
-          team={match.awayTeam}
-        />
-      </div>
-    </article>
-  );
-}
-
-function InteractiveBracket({
-  rounds,
-  bracketPicks = {},
-  champion,
-  onPick
-}: {
-  rounds: Record<VisualBracketRoundKey, VisualBracketMatch[]>;
-  bracketPicks: VisualBracketPicks;
-  champion: VisualDemoTeam | null;
-  onPick: (matchId: string, teamId: string) => void;
-}) {
-  const roundOrder: VisualBracketRoundKey[] = [
-    "round32",
-    "round16",
-    "quarterFinals",
-    "semiFinals",
-    "final"
-  ];
-
-  return (
-    <section className="rounded-[32px] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] md:p-6">
-      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-700">
-            Mata-mata
-          </p>
-          <h2 className="mt-1 text-2xl font-black text-slate-950">Chave interativa</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Escolha os vencedores de cada confronto. As próximas fases são atualizadas
-            automaticamente conforme suas escolhas.
-          </p>
-        </div>
-
-        <div className="rounded-2xl bg-slate-950 px-4 py-3 text-center text-white">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300">
-            Campeã
-          </p>
-          <p className="text-lg font-black">
-            {champion ? `${champion.flag} ${champion.name}` : "🏆 A definir"}
-          </p>
-        </div>
-      </div>
-
-      <div className="-mx-4 overflow-x-auto px-4 pb-2">
-        <div className="grid min-w-[1180px] grid-cols-5 gap-4">
-          {roundOrder.map((roundKey) => (
-            <div className="space-y-3" key={roundKey}>
-              <div className="sticky top-0 rounded-2xl bg-slate-950 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.18em] text-white">
-                {roundLabels[roundKey]}
-              </div>
-
-              {rounds[roundKey].map((match) => (
-                <BracketMatchCard
-                  key={match.id}
-                  match={match}
-                  onPick={onPick}
-                  pickedTeamId={bracketPicks[match.id]}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function QualifiedStrip({
+function BracketPreview({
   groups,
   picks
 }: {
@@ -300,126 +154,117 @@ function QualifiedStrip({
 }) {
   const qualified = buildVisualQualifiedTeams(groups, picks);
   const bestThirds = getDemoBestThirdPlacedTeams(groups, picks);
+  const byToken = new Map<string, VisualDemoTeam>();
+
+  for (const qualifiedTeam of qualified) {
+    const prefix =
+      qualifiedTeam.position === 1 ? "1" : qualifiedTeam.position === 2 ? "2" : "3";
+    byToken.set(`${prefix}${qualifiedTeam.groupLetter}`, qualifiedTeam.team);
+  }
+
+  const thirdQueue = [...bestThirds];
+
+  function resolveToken(token: string): VisualDemoTeam | null {
+    if (token === "3º") {
+      return thirdQueue.shift()?.team ?? null;
+    }
+
+    return byToken.get(token) ?? null;
+  }
 
   return (
-    <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-3">
+    <section className="rounded-[32px] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)] md:p-6">
+      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-700">
-            Classificados
+            Mata-mata
           </p>
-          <h2 className="text-lg font-black text-slate-950">32 vagas em construção</h2>
+          <h2 className="mt-1 text-2xl font-black text-slate-950">Chave automática</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            Prévia visual dos 16-avos. A matriz oficial completa dos terceiros deve
+            continuar vindo dos dados oficiais versionados.
+          </p>
         </div>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500">
-          {qualified.length}/36 escolhas
-        </span>
+
+        <div className="rounded-2xl bg-slate-950 px-4 py-3 text-center text-white">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300">
+            Campeã
+          </p>
+          <p className="text-lg font-black">🏆 A definir</p>
+        </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {qualified.map((qualifiedTeam) => {
-          const isThird = qualifiedTeam.position === 3;
-          const thirdQualified = bestThirds.some(
-            (team) => team.groupLetter === qualifiedTeam.groupLetter
-          );
+      <div className="mb-4 grid grid-cols-5 gap-2 text-center text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">
+        <span>Décima-sextas</span>
+        <span>Oitavas</span>
+        <span>Quartas</span>
+        <span>Semi</span>
+        <span>Final</span>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        {roundOf32Tokens.map(([homeToken, awayToken], index) => {
+          const home = resolveToken(homeToken);
+          const away = resolveToken(awayToken);
 
           return (
-            <span
-              className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-sm font-bold ${
-                isThird && !thirdQualified
-                  ? "border-slate-200 bg-slate-50 text-slate-400"
-                  : "border-emerald-100 bg-emerald-50 text-emerald-800"
-              }`}
-              key={`${qualifiedTeam.groupLetter}-${qualifiedTeam.position}-${qualifiedTeam.team.id}`}
+            <article
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+              key={`${homeToken}-${awayToken}-${index}`}
             >
-              <span aria-hidden="true">{qualifiedTeam.team.flag}</span>
-              {qualifiedTeam.team.name}
-              <small className="font-black">
-                {qualifiedTeam.position}º {qualifiedTeam.groupLetter}
-              </small>
-            </span>
+              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                Jogo {index + 73}
+              </p>
+
+              {[home, away].map((team, teamIndex) => (
+                <div
+                  className="mb-2 flex items-center justify-between rounded-xl bg-white px-3 py-2 shadow-sm last:mb-0"
+                  key={`${index}-${teamIndex}`}
+                >
+                  {team ? (
+                    <TeamIdentity team={team} />
+                  ) : (
+                    <span className="text-sm font-bold text-slate-400">A definir</span>
+                  )}
+                  <button
+                    className="rounded-full border border-slate-200 px-3 py-1 text-xs font-black text-slate-400"
+                    type="button"
+                  >
+                    escolher
+                  </button>
+                </div>
+              ))}
+            </article>
           );
         })}
-
-        {qualified.length === 0 ? (
-          <span className="text-sm font-medium text-slate-400">
-            Escolha os classificados nos grupos para preencher esta área.
-          </span>
-        ) : null}
       </div>
     </section>
   );
 }
 
 export function VisualWorldCupSimulator({ groups }: VisualWorldCupSimulatorProps) {
-  const [groupPicks, setGroupPicks] = useState<VisualGroupPicks>({});
-  const [bracketPicks, setBracketPicks] = useState<VisualBracketPicks>({});
-  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
-  const hasHydratedRef = useRef(false);
-
-  const completedGroups = countCompletedGroups(groups, groupPicks);
-  const bestThirds = getDemoBestThirdPlacedTeams(groups, groupPicks);
-
-  const rounds = useMemo(
-    () => buildVisualBracketRounds(groups, groupPicks, bracketPicks),
-    [bracketPicks, groups, groupPicks]
-  );
-
-  const champion = useMemo(() => getVisualChampion(rounds, bracketPicks), [bracketPicks, rounds]);
+  const [picks, setPicks] = useState<VisualGroupPicks>({});
+  const completedGroups = countCompletedGroups(groups, picks);
+  const bestThirds = getDemoBestThirdPlacedTeams(groups, picks);
 
   const qualifiedCount = useMemo(() => {
-    const qualified = buildVisualQualifiedTeams(groups, groupPicks);
+    const qualified = buildVisualQualifiedTeams(groups, picks);
     const firstAndSecond = qualified.filter((team) => team.position === 1 || team.position === 2);
 
     return firstAndSecond.length + bestThirds.length;
-  }, [bestThirds.length, groups, groupPicks]);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      try {
-        const rawState = window.localStorage.getItem(storageKey);
-
-        if (!rawState) {
-          hasHydratedRef.current = true;
-          return;
-        }
-
-        const parsedState = JSON.parse(rawState) as Partial<PersistedVisualState>;
-
-        setGroupPicks(parsedState.groupPicks ?? {});
-        setBracketPicks(parsedState.bracketPicks ?? {});
-        hasHydratedRef.current = true;
-      } catch {
-        window.localStorage.removeItem(storageKey);
-        hasHydratedRef.current = true;
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!hasHydratedRef.current) {
-      return;
-    }
-
-    const nextState: PersistedVisualState = {
-      groupPicks,
-      bracketPicks: sanitizeVisualBracketPicks(rounds, bracketPicks)
-    };
-
-    window.localStorage.setItem(storageKey, JSON.stringify(nextState));
-  }, [bracketPicks, groupPicks, rounds]);
+  }, [bestThirds.length, groups, picks]);
 
   function choose(groupLetter: string, position: VisualPickPosition, teamId: string) {
-    setGroupPicks((current) => ({
+    setPicks((current) => ({
       ...current,
       [groupLetter]: chooseVisualTeam(current[groupLetter] ?? {}, position, teamId)
     }));
-    setBracketPicks({});
   }
 
   function randomizeGroup(group: VisualDemoGroup) {
     const [first, second, third] = shuffleTeams(group.teams);
 
-    setGroupPicks((current) => ({
+    setPicks((current) => ({
       ...current,
       [group.letter]: {
         first: first?.id,
@@ -427,11 +272,10 @@ export function VisualWorldCupSimulator({ groups }: VisualWorldCupSimulatorProps
         third: third?.id
       }
     }));
-    setBracketPicks({});
   }
 
   function randomizeAll() {
-    setGroupPicks(
+    setPicks(
       Object.fromEntries(
         groups.map((group) => {
           const [first, second, third] = shuffleTeams(group.teams);
@@ -447,36 +291,10 @@ export function VisualWorldCupSimulator({ groups }: VisualWorldCupSimulatorProps
         })
       )
     );
-    setBracketPicks({});
-  }
-
-  function pickBracketWinner(matchId: string, teamId: string) {
-    setBracketPicks((current) =>
-      sanitizeVisualBracketPicks(rounds, {
-        ...current,
-        [matchId]: teamId
-      })
-    );
   }
 
   function reset() {
-    setGroupPicks({});
-    setBracketPicks({});
-    setShareFeedback(null);
-    window.localStorage.removeItem(storageKey);
-  }
-
-  async function share() {
-    const text = champion
-      ? `Minha campeã no Simulador da Copa 2026: ${champion.name}`
-      : "Montei minha simulação da Copa 2026.";
-
-    try {
-      await navigator.clipboard.writeText(text);
-      setShareFeedback("Resumo copiado.");
-    } catch {
-      setShareFeedback("Não foi possível copiar automaticamente.");
-    }
+    setPicks({});
   }
 
   return (
@@ -491,7 +309,7 @@ export function VisualWorldCupSimulator({ groups }: VisualWorldCupSimulatorProps
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300 md:text-base">
             Experiência mobile first inspirada em simuladores esportivos: grupos compactos,
-            botões rápidos, classificados em tempo real e mata-mata interativo.
+            botões rápidos, classificados em tempo real e prévia do mata-mata.
           </p>
         </div>
 
@@ -535,20 +353,12 @@ export function VisualWorldCupSimulator({ groups }: VisualWorldCupSimulatorProps
           </button>
           <button
             className="shrink-0 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700"
-            onClick={share}
             type="button"
           >
             Compartilhar
           </button>
-          {shareFeedback ? (
-            <span className="shrink-0 rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white">
-              {shareFeedback}
-            </span>
-          ) : null}
         </div>
       </div>
-
-      <QualifiedStrip groups={groups} picks={groupPicks} />
 
       <section id="grupos" className="space-y-4">
         <div>
@@ -565,18 +375,13 @@ export function VisualWorldCupSimulator({ groups }: VisualWorldCupSimulatorProps
               key={group.letter}
               onChoose={(position, teamId) => choose(group.letter, position, teamId)}
               onRandomize={() => randomizeGroup(group)}
-              pick={groupPicks[group.letter] ?? {}}
+              pick={picks[group.letter] ?? {}}
             />
           ))}
         </div>
       </section>
 
-      <InteractiveBracket
-        bracketPicks={bracketPicks}
-        champion={champion}
-        onPick={pickBracketWinner}
-        rounds={rounds}
-      />
+      <BracketPreview groups={groups} picks={picks} />
     </div>
   );
 }

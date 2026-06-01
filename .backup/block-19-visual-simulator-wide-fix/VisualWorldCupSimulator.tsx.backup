@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { VisualDemoGroup, VisualDemoTeam } from "../../lib/fifa/visualDemoData.ts";
 import {
   buildVisualBracketRounds,
@@ -25,7 +25,7 @@ type VisualWorldCupSimulatorProps = {
 
 type PersistedVisualState = {
   groupPicks: VisualGroupPicks;
-  bracketPicks?: VisualBracketPicks;
+  bracketPicks: VisualBracketPicks;
 };
 
 const storageKey = "simulador-copa-2026:visual-state:v1";
@@ -226,7 +226,7 @@ function BracketMatchCard({
 
 function InteractiveBracket({
   rounds,
-  bracketPicks = {},
+  bracketPicks,
   champion,
   onPick
 }: {
@@ -277,6 +277,7 @@ function InteractiveBracket({
 
               {rounds[roundKey].map((match) => (
                 <BracketMatchCard
+                  bracketPicks={bracketPicks}
                   key={match.id}
                   match={match}
                   onPick={onPick}
@@ -353,8 +354,8 @@ function QualifiedStrip({
 export function VisualWorldCupSimulator({ groups }: VisualWorldCupSimulatorProps) {
   const [groupPicks, setGroupPicks] = useState<VisualGroupPicks>({});
   const [bracketPicks, setBracketPicks] = useState<VisualBracketPicks>({});
+  const [hasMounted, setHasMounted] = useState(false);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
-  const hasHydratedRef = useRef(false);
 
   const completedGroups = countCompletedGroups(groups, groupPicks);
   const bestThirds = getDemoBestThirdPlacedTeams(groups, groupPicks);
@@ -374,29 +375,26 @@ export function VisualWorldCupSimulator({ groups }: VisualWorldCupSimulatorProps
   }, [bestThirds.length, groups, groupPicks]);
 
   useEffect(() => {
-    queueMicrotask(() => {
-      try {
-        const rawState = window.localStorage.getItem(storageKey);
+    setHasMounted(true);
 
-        if (!rawState) {
-          hasHydratedRef.current = true;
-          return;
-        }
+    try {
+      const rawState = window.localStorage.getItem(storageKey);
 
-        const parsedState = JSON.parse(rawState) as Partial<PersistedVisualState>;
-
-        setGroupPicks(parsedState.groupPicks ?? {});
-        setBracketPicks(parsedState.bracketPicks ?? {});
-        hasHydratedRef.current = true;
-      } catch {
-        window.localStorage.removeItem(storageKey);
-        hasHydratedRef.current = true;
+      if (!rawState) {
+        return;
       }
-    });
+
+      const parsedState = JSON.parse(rawState) as Partial<PersistedVisualState>;
+
+      setGroupPicks(parsedState.groupPicks ?? {});
+      setBracketPicks(parsedState.bracketPicks ?? {});
+    } catch {
+      window.localStorage.removeItem(storageKey);
+    }
   }, []);
 
   useEffect(() => {
-    if (!hasHydratedRef.current) {
+    if (!hasMounted) {
       return;
     }
 
@@ -406,7 +404,7 @@ export function VisualWorldCupSimulator({ groups }: VisualWorldCupSimulatorProps
     };
 
     window.localStorage.setItem(storageKey, JSON.stringify(nextState));
-  }, [bracketPicks, groupPicks, rounds]);
+  }, [bracketPicks, groupPicks, hasMounted, rounds]);
 
   function choose(groupLetter: string, position: VisualPickPosition, teamId: string) {
     setGroupPicks((current) => ({
